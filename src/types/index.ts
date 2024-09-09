@@ -1,3 +1,5 @@
+import { ObjectId } from "mongoose";
+
  interface Notification {
     id: string;
     message: string;
@@ -5,7 +7,7 @@
 }
 
 interface Provider {
-    _id: string;
+    _id: ObjectId;
     name: string;
     email: string;
     imageUrl: string;
@@ -16,6 +18,7 @@ interface Provider {
 
 interface Slot {
     time: string;
+    isBooked: boolean
 }
 
 interface Availability {

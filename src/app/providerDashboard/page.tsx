@@ -143,9 +143,11 @@ const mergeAvailability = (availabilityArray: any[]) => {
         ...mergedAvailability[date].slots, // this will merge existing slots 
         ...slots, // with the new slots
       ];
+
+      mergedAvailability[date].isBooked = false;
     } else {
       // Otherwise, add the new date and its slots
-      mergedAvailability[date] = { date, slots };
+      mergedAvailability[date] = { date, slots, isBooked: false };
     }
   });
 
