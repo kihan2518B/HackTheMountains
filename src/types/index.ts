@@ -8,4 +8,13 @@ interface Provider {
     location: string;
 }
 
-export type { Provider }
+interface Slot {
+    time: string;
+}
+
+interface Availability {
+    date: string; 
+    slots: Slot[]
+}
+
+export type { Provider, Availability, Slot }

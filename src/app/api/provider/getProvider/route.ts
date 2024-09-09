@@ -10,7 +10,7 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const userID = searchParams.get('providerID');
 
-        console.log("route",userID);
+        // console.log("route",userID);
 
 
         if (!userID) {
@@ -18,7 +18,7 @@ export async function GET(req: Request) {
         }
 
       const user = await Provider.findOne({ userID }).exec(); // collecting one collection who have same value of email as email coming from the json
-      console.log("user",user);
+      // console.log("user",user);
 
       if (!user) {return new NextResponse(JSON.stringify({ message: "Provider Not Found!!" }), { status: 404 })};
 
