@@ -12,11 +12,11 @@ const LoginForm: React.FC = () => {
     const router = useRouter();
 
 
-    const handleLogin = async(e: any) => {
+    const handleLogin = async(e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         setLoginLoading(true);
-        const formData = new FormData(e.target); // tacking data from the form
+        const formData = new FormData(e.target as HTMLFormElement); // tacking data from the form
         const data = {
         email: formData.get("email"),
         password: formData.get("password")

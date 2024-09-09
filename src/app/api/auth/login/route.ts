@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     try {
       await connectToDatabase();
       const user = await User.findOne({ email }).exec(); // collecting one collection who have same value of email as email coming from the json
-      // console.log("user",user);
+      // console.log("user",user); 
 
       if (!user) {
         return new NextResponse(
