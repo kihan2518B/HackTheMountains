@@ -11,11 +11,11 @@ const SignupForm: React.FC = () => {
   const [SigUpLoading, setSigUpLoading] = useState(false);
   const router = useRouter();
 
-  const handleSignUp = async (e: any) => {
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSigUpLoading(true);
 
-    const formData = new FormData(e.target); // tacking form data
+    const formData = new FormData(e.target as HTMLFormElement); // tacking form data
     const data = {
       name: formData.get("name"),
       email: formData.get("email"),
