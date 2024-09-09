@@ -1,3 +1,9 @@
+ interface Notification {
+    id: string;
+    message: string;
+    isRead: boolean;
+}
+
 interface Provider {
     _id: string;
     name: string;
@@ -17,4 +23,4 @@ interface Availability {
     slots: Slot[]
 }
 
-export type { Provider, Availability, Slot }
+export type { Provider, Availability, Slot, Notification }
