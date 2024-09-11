@@ -21,11 +21,13 @@ import { useRouter } from 'next/navigation';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 
 import NotificationPanel from './NotificationPanel';
+import { getUserRoleFromToken } from '@/utils/utils';
 
 const pages = [
     { title: 'Home', link: '/', isCustomer: true, isProvider: true },
     { title: 'Schedule', link: '/provider/schedule', isCustomer: false, isProvider: true },
-    { title: 'Dashboard', link: 'dashboard', isCustomer: false, isProvider: true },
+    { title: 'Book a appointment', link: '/customerDashboard', isCustomer: true, isProvider: true },
+    { title: 'Dashboard', link: '/providerDashboard', isCustomer: false, isProvider: true },
     { title: 'Become A Provider', link: '/provider/register', isCustomer: true, isProvider: false },
 ];
 
@@ -51,10 +53,15 @@ const Navbar = () => {
     const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
     const [anchorElNotifications, setAnchorElNotifications] = useState<null | HTMLElement>(null);
 
+    const token = localStorage.getItem("token");
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem("User") ?? "{}");
-        setIsProvider(user.isProvider ?? false);
-    }, []);
+        // console.log("token from Navbar", token);
+        if (token) {
+            const UserRole = getUserRoleFromToken(token);
+            // console.log(UserRole)
+            setIsProvider(UserRole == 'provider' ? true : false);
+        }
+    }, [token]);
 
     const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorElNav(event.currentTarget);
@@ -132,7 +139,7 @@ const Navbar = () => {
                                 display: { xs: 'block', md: 'none' },
                             }}
                         >
-                            {pages.filter(page => page.isCustomer !== isProvider || page.isProvider === isProvider).map((page) => (
+                            {pages.filter(page => page.isCustomer !== isProvider || page.isProvider == isProvider).map((page) => (
                                 <MenuItem key={page.title} onClick={handleCloseNavMenu}>
                                     <Link href={page.link}>
                                         <Typography textAlign="center">{page.title}</Typography>

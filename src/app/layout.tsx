@@ -6,7 +6,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { isTokenExpired } from "@/utils/auth";
+import { isTokenExpired } from "@/utils/utils";
 import Navbar from "@/components/Navbar";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -28,8 +28,7 @@ export default function RootLayout({
       // console.log("token",token)
 
       if (token) {
-        console.log("token")
-
+        // console.log(token)
         if (isTokenExpired(token)) {
           localStorage.removeItem('token');
           setShowNavbar(false); // Optionally hide the Navbar here
@@ -43,7 +42,7 @@ export default function RootLayout({
           }
           setLoading(false);
         }
-
+        console.log("Token Is there")
       } else {
         // Check if the current path is allowed without token
         console.log("not token")
@@ -53,6 +52,7 @@ export default function RootLayout({
           setShowNavbar(false);
           router.push('/login'); // Hide Navbar for non-authenticated users on specific routes
         }
+        console.log("Token Is not there")
         setLoading(false);
       }
     };
