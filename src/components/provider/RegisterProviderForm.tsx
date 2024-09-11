@@ -68,7 +68,9 @@ const RegisterProviderForm: React.FC = () => {
             const result = await response.json();
 
             if(response.ok){
-                localStorage.setItem('token', result.token);
+                localStorage.removeItem('token'); // removing token in case of provider is already exists with role:'client' 
+
+                localStorage.setItem('token', result.userToken);
                 toast.success(result.message)
                 setTimeout(() => {
                     router.push("/providerDashboard");

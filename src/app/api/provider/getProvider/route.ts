@@ -8,10 +8,8 @@ export async function GET(req: Request) {
     try {
         await connectToDatabase();
         const { searchParams } = new URL(req.url);
-        const userID = searchParams.get('providerID');
-
+        const userID = searchParams.get('userID');
         // console.log("route",userID);
-
 
         if (!userID) {
             return new NextResponse(JSON.stringify({ message: `Provider ID is required`}),{status: 400} )

@@ -22,21 +22,44 @@ export async function POST(req: Request) {
 
         const hashedPassword = await bcrypt.hash(password, 10); // converting password to hashedPassword
 
-        // 1. creating the user with role 'provider'
-        const newUser = new User({
-            name,
-            email,
-            password: hashedPassword,
-            role: "provider",
-        });
+        const user = await User.findOne({ email }); // collecting one collection who have same value of email as email coming from the json
+      // console.log("user",user); 
+        let userID;
+        let userToken;
+          
+        if (user) {
+          user.role = "provider"
 
-        await newUser.save();
+          await user.save();
+          userID = user._id;
 
-        // creating jwt token with user's details
-        const token = jwt.sign({ id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, }, JWT_SECRET, {
+          // creating jwt token with user's details
+          const token = jwt.sign({ id: user._id, name: user.name, email: user.email, role: user.role, }, JWT_SECRET, {
             expiresIn: JWT_EXPIRES_IN,
-        });
+          });
+          userToken = token;
 
+        } else {
+          
+            // 1. creating the user with role 'provider'
+            const newUser = new User({
+              name,
+              email,
+              password: hashedPassword,
+              role: "provider",
+            });
+            
+            await newUser.save();
+            userID = newUser._id;
+
+            
+          // creating jwt token with user's details
+          const token = jwt.sign({ id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, }, JWT_SECRET, {
+            expiresIn: JWT_EXPIRES_IN,
+          });
+          userToken = token;
+      }
+      
         // 2. Creating a new provider in MongoDB
         const newProvider = new Provider({
           name, 
@@ -44,7 +67,7 @@ export async function POST(req: Request) {
           category,
           location,
           speciality, 
-          userID: newUser._id,
+          userID: userID._id,
           availabilityID: '',
           imageUrl,
         });
@@ -53,7 +76,7 @@ export async function POST(req: Request) {
 
         // 3. Create an availability document in Firestore for the new doctor
         const availabilityRef = await addDoc(collection(db, 'availabilities'), {
-          providerID: newProvider._id.toString(), // Reference to the MongoDB doctor's ID
+          providerID: userID._id.toString(), // Reference to the MongoDB doctor's ID
           availability: [], // Initially empty; will be updated with actual availability data
         });
 
@@ -61,7 +84,10 @@ export async function POST(req: Request) {
         newProvider.availabilityID = availabilityRef.id;
         await newProvider.save();
 
-        return new NextResponse(JSON.stringify({ message: "Provider added Successfully", token, role: newUser.role }), { status: 201 });
+        console.log("userToken", userToken)
+        console.log("role", userID.role)
+
+        return new NextResponse(JSON.stringify({ message: "Provider added Successfully", userToken, role: userID.role }), { status: 201 });
 
         } catch (error) {
           console.error("Error creating user:", error);

@@ -17,25 +17,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const [showNavbar, setShowNavbar] = useState<boolean>(true);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
 
     const checkAuthentication = () => {
-      const token = localStorage.getItem('token') ?? "{}";
-      const User = JSON.parse(localStorage.getItem("User") ?? "{}");
+      const token = localStorage.getItem('token');
       // console.log("token",token)
 
       if (token) {
+        console.log("token")
+
         if (isTokenExpired(token)) {
           localStorage.removeItem('token');
           setShowNavbar(false); // Optionally hide the Navbar here
           router.push("/login");
         } else {
 
-          if (pathname === '/login' || pathname === '/signup' || pathname === '/register') { //Not showing navbar in these pages
+          if (pathname === '/login' || pathname === '/signup' || pathname === '/registerProvider') { //Not showing navbar in these pages
             setShowNavbar(false);
           } else {
             setShowNavbar(true);
@@ -45,7 +46,8 @@ export default function RootLayout({
 
       } else {
         // Check if the current path is allowed without token
-        if (pathname === '/signup' || pathname === '/login' || pathname === '/register') {
+        console.log("not token")
+        if (pathname === '/signup' || pathname === '/login' || pathname === '/registerProvider') {
           setShowNavbar(false);
         } else {
           setShowNavbar(false);
@@ -59,20 +61,18 @@ export default function RootLayout({
   }, [pathname, router]);
 
 
-  if (loading) {
-    return <div>Loading...</div>; // Show a loading indicator while checking authentication
-  }
-
   return (
     <html lang="en">
       <body className={`${inter.className} overflow-x-hidden scroll-smooth p-0 m-0`}>
-
-        {showNavbar && (
-          <Navbar />
-        )}
-        {children}
-        <ToastContainer />
-
+        {loading ? (<div>Loading...</div>) : 
+        (
+          <>
+          {showNavbar && <Navbar />}
+          {children}
+          <ToastContainer />
+        </>
+        )
+      }
       </body>
     </html>
   );
