@@ -24,11 +24,10 @@ export default function RootLayout({
   useEffect(() => {
 
     const checkAuthentication = () => {
-      const token = localStorage.getItem('token') ?? "{}";
-      const User = JSON.parse(localStorage.getItem("User") ?? "{}");
-      // console.log("token",token)
+      const token = localStorage.getItem('token');
 
       if (token) {
+        // console.log(token)
         if (isTokenExpired(token)) {
           localStorage.removeItem('token');
           setShowNavbar(false); // Optionally hide the Navbar here
@@ -42,7 +41,7 @@ export default function RootLayout({
           }
           setLoading(false);
         }
-
+        console.log("Token Is there")
       } else {
         // Check if the current path is allowed without token
         if (pathname === '/signup' || pathname === '/login' || pathname === '/register') {
@@ -51,6 +50,7 @@ export default function RootLayout({
           setShowNavbar(false);
           router.push('/login'); // Hide Navbar for non-authenticated users on specific routes
         }
+        console.log("Token Is not there")
         setLoading(false);
       }
     };
@@ -59,19 +59,23 @@ export default function RootLayout({
   }, [pathname, router]);
 
 
-  if (loading) {
-    return <div>Loading...</div>; // Show a loading indicator while checking authentication
-  }
+
 
   return (
     <html lang="en">
       <body className={`${inter.className} overflow-x-hidden scroll-smooth p-0 m-0`}>
-
-        {showNavbar && (
-          <Navbar />
-        )}
-        {children}
-        <ToastContainer />
+        {loading == true ? (
+          <>Loading</>
+        ) : (
+          <>
+            {showNavbar && (
+              <Navbar />
+            )}
+            {children}
+            <ToastContainer />
+          </>
+        )
+        }
 
       </body>
     </html>

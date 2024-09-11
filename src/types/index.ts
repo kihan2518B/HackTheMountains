@@ -1,3 +1,5 @@
+import { ObjectId } from "mongoose";
+
  interface Notification {
     id: string;
     message: string;
@@ -14,6 +16,14 @@ interface Provider {
     location: string;
 }
 
+interface TypeUser {
+    _id:ObjectId;
+    name: string;
+    email: string;
+    role: "client"|"provider";
+    password: string
+}
+
 interface Slot {
     time: string;
 }
@@ -23,4 +33,4 @@ interface Availability {
     slots: Slot[]
 }
 
-export type { Provider, Availability, Slot, Notification }
+export type { Provider, Availability, Slot, Notification,TypeUser }
