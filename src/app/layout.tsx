@@ -6,7 +6,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { isTokenExpired } from "@/utils/auth";
+import { isTokenExpired } from "@/utils/utils";
 import Navbar from "@/components/Navbar";
 
 const inter = Inter({ subsets: ["latin"] });

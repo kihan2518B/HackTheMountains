@@ -26,6 +26,7 @@ interface TypeUser {
 
 interface Slot {
     time: string;
+    isBooked: boolean
 }
 
 interface Availability {
