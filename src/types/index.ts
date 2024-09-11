@@ -16,6 +16,14 @@ interface Provider {
     location: string;
 }
 
+interface TypeUser {
+    _id:ObjectId;
+    name: string;
+    email: string;
+    role: "client"|"provider";
+    password: string
+}
+
 interface Slot {
     time: string;
     isBooked: boolean
@@ -26,4 +34,4 @@ interface Availability {
     slots: Slot[]
 }
 
-export type { Provider, Availability, Slot, Notification }
+export type { Provider, Availability, Slot, Notification,TypeUser }
