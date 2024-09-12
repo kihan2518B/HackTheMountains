@@ -7,7 +7,9 @@ export const GetDataFromFirestore = async (collectionName: string) => {
     return querySnapshot.docs;
 }
 
-export const getAvailabilityFromFirestore = async (providerID: ObjectId) => {
+
+
+export const getAvailabilityFromFirestore = async (providerID: ObjectId)=> {
     try {
         console.log("providerID: ", providerID);
         const q = query(collection(db, "availabilities"), where("providerID", "==", providerID));
@@ -17,11 +19,14 @@ export const getAvailabilityFromFirestore = async (providerID: ObjectId) => {
         // Check if a document exists
         if (!querySnapshot.empty) {
             // Return the ID of the first matching document
-            return querySnapshot.docs[0].data;
-        } else {
-            // No matching document found
-            return null;
+            const availability = querySnapshot.docs[0].data().availability
+            const docID = querySnapshot.docs[0].id
+            if (!docID || !availability) {
+                throw new Error("Document not found")
+            }
+            return { availability, docID };
         }
+        return null; // Return null if no documents are found
     } catch (error) {
         console.error("Error fetching document from firestore:", error);
         return null;

@@ -87,14 +87,14 @@ const page: React.FC = () => {
         }
     }, [selectedDate, availabilities])
 
-    const handleSlotClick = (slot: Slot, date: string) => {
+    const handleSlotClick = (slot: Slot) => {
         if (!slot.isBooked) {
             setSelectedSlot(slot)
         }
     };
 
     const handleBookAppointment = async () => {
-        if (selectedSlot && selectedDate && providerID) {
+        if (selectedSlot && formattedDate && providerID) {
             try {
                 setLoading(true);
                 const response = await fetch("/api/appointment/book", {
@@ -105,7 +105,7 @@ const page: React.FC = () => {
                     },
                     body: JSON.stringify({
                         providerID,
-                        date: selectedDate,
+                        date: formattedDate,
                         slot: selectedSlot.time,
                     }),
                 });
@@ -115,9 +115,9 @@ const page: React.FC = () => {
                     console.log("Appointment booked successfully:", data);
                     setLoading(false);
                     toast.success("Appointment booked successfully");
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+                    // setTimeout(() => {
+                    //     window.location.reload();
+                    // }, 1000);
                 } else {
                     const errorData = await response.json();
                     setError(errorData.message);
@@ -148,6 +148,9 @@ const page: React.FC = () => {
                     <ProviderProfile provider={provider} />
                     <CalendarSection selectedDate={selectedDate} handleDateChange={handleDateChange} />
                     <ProviderAvailabilitySlot
+                        selectedSlot={selectedSlot}
+                        handleSlotClick={handleSlotClick}
+                        handleBookAppointment={handleBookAppointment}
                         selectedDate={selectedDate}
                         slotsForSelectedDate={slotsForSelectedDate}
                     />
@@ -155,7 +158,6 @@ const page: React.FC = () => {
             ) : (
                 <div className="p-4 text-ColorThree">Loading provider details...</div>
             )}
-            <ToastContainer />
         </div>
     );
 };
