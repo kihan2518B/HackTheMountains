@@ -28,7 +28,7 @@ const pages = [
     { title: 'Schedule', link: '/provider/schedule', isCustomer: false, isProvider: true },
     { title: 'Book a appointment', link: '/customerDashboard', isCustomer: true, isProvider: true },
     { title: 'Dashboard', link: '/providerDashboard', isCustomer: false, isProvider: true },
-    { title: 'Become A Provider', link: '/provider/register', isCustomer: true, isProvider: false },
+    { title: 'Become A Provider', link: '/registerProvider', isCustomer: true, isProvider: false },
 ];
 
 const settings = [

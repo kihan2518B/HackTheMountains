@@ -11,7 +11,7 @@ const ProviderCard = ({ provider }: ProviderCardProps) => {
     const router = useRouter();
 
     const handleBookAppointment = () => {
-        router.push(`/provider/${provider._id}`);
+        router.push(`/provider/${provider.userID}`);
     };
 
     return (
