@@ -28,7 +28,7 @@ const pages = [
     { title: 'Schedule', link: '/provider/schedule', isCustomer: false, isProvider: true },
     { title: 'Book a appointment', link: '/customerDashboard', isCustomer: true, isProvider: true },
     { title: 'Dashboard', link: '/providerDashboard', isCustomer: false, isProvider: true },
-    { title: 'Become A Provider', link: '/provider/register', isCustomer: true, isProvider: false },
+    { title: 'Become A Provider', link: '/registerProvider', isCustomer: true, isProvider: false },
 ];
 
 const settings = [
@@ -52,8 +52,13 @@ const Navbar = () => {
     const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
     const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
     const [anchorElNotifications, setAnchorElNotifications] = useState<null | HTMLElement>(null);
-
-    const token = localStorage.getItem("token");
+    const [token, setToken] = useState<string | null>(null);
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            setToken(token)
+        }
+    }, [])
     useEffect(() => {
         // console.log("token from Navbar", token);
         if (token) {

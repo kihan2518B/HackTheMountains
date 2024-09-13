@@ -8,6 +8,7 @@ import { ObjectId } from "mongoose";
 
 interface Provider {
     _id: ObjectId;
+    userID:ObjectId
     name: string;
     email: string;
     imageUrl: string;

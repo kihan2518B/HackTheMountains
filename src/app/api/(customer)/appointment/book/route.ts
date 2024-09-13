@@ -12,6 +12,7 @@ import { sendNotification } from "@/helpers/notification";
 import { connectToDatabase } from "@/config/MongoConnect";
 import { AddDataInFireStore } from "@/helpers/(firebase)/addData";
 import { getAvailabilityFromFirestore } from "@/helpers/(firebase)/GetData";
+import { updateSlotStatusInFirestore } from "@/helpers/(firebase)/UpdateData";
 
 
 export const POST = async (req: Request) => {
@@ -30,7 +31,7 @@ export const POST = async (req: Request) => {
                 throw new Error("Date and Slot is required!!")
             }
 
-            const provider = await Provider.findById(providerID);
+            const provider = await Provider.findOne({ userID: providerID });
             if (!provider) {
                 return new NextResponse(JSON.stringify({ message: 'Provider not found' }), {
                     status: 404,
@@ -40,18 +41,19 @@ export const POST = async (req: Request) => {
 
             // Convert the date string to a Date object for comparison
             const selectedDate = new Date(date);
+            console.log("selectedDate", selectedDate)
             if (isNaN(selectedDate.getTime())) {
                 throw new Error("Invalid date format");
             }
 
-            //finding availability using providerID and date
-            const Provider_Availability = await getAvailabilityFromFirestore(providerID);
-            const existingAvailability = Provider_Availability.find((availability: Availability) =>
+            // //finding availability using providerID and date
+            const { availability, docID } = await getAvailabilityFromFirestore(providerID);
+            console.log("Provider_Availability: ", availability)
+
+            const existingAvailability = availability.find((availability: Availability) =>
                 new Date(availability.date).toISOString() === selectedDate.toISOString()
             );
-            // const existingAvailability = provider.availability.find((availability: Availability) =>
-            //     new Date(availability.date).toISOString() === selectedDate.toISOString()
-            // );
+            console.log("existingAvailability", existingAvailability)
 
             //If provider is not available
             if (!existingAvailability) {
@@ -63,7 +65,7 @@ export const POST = async (req: Request) => {
 
             // Find the specific slot and mark it as booked
             const slotToBook = existingAvailability.slots.find((s: Slot) => s.time === slot && !s.isBooked);
-
+            console.log("slotToBook: ", slotToBook)
             //Slot is already booked
             if (!slotToBook) {
                 return new NextResponse(JSON.stringify({ message: "Slot not available or already booked" }), {
@@ -72,18 +74,19 @@ export const POST = async (req: Request) => {
                 });
             }
 
-            // Mark the slot as booked
             slotToBook.isBooked = true;
 
             // Save the updated provider's availability
-            await provider.save();
+            await updateSlotStatusInFirestore(docID, selectedDate.toISOString().split('T')[0], slot);
 
             const newAppointment = {
                 userID: decodedUser._id,
-                providerID: provider._id,
-                date: new Date(date),
+                providerID,
+                date: `${date}`,
                 time: slot,
-            }
+                status: "PENDING"
+            };
+            console.log("newAppointment:", newAppointment);
 
             await AddDataInFireStore("appointments", newAppointment);
 
