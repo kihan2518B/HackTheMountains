@@ -52,8 +52,13 @@ const Navbar = () => {
     const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
     const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
     const [anchorElNotifications, setAnchorElNotifications] = useState<null | HTMLElement>(null);
-
-    const token = localStorage.getItem("token");
+    const [token, setToken] = useState<string | null>(null);
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            setToken(token)
+        }
+    }, [])
     useEffect(() => {
         // console.log("token from Navbar", token);
         if (token) {

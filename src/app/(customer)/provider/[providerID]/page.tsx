@@ -1,23 +1,21 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Provider, Slot, Availability } from "@/types";
 import { useParams } from "next/navigation";
-import { ToastContainer, toast } from "react-toastify";
+
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/config/firebase";
+
 import ProviderProfile from "@/components/provider/ProviderProfile";
 import CalendarSection from "@/components/provider/CalendarSection";
 import ProviderAvailabilitySlot from "@/components/customer/ProviderAvailabilitySlot";
 
+import { Provider, Slot, Availability } from "@/types";
+import { formatDate } from "@/helpers/formateDate";
+
 const page: React.FC = () => {
-    // Function to format the date
-    const formatDate = (date: Date): string => {
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-    };
 
     const token = localStorage.getItem("token");
     const { providerID } = useParams();
@@ -68,7 +66,6 @@ const page: React.FC = () => {
                 // const mergedAvailabilities = [...availabilities, ...realTimeavailabilities];
                 setAvailabilities(realTimeavailabilities[0].availability);
             });
-
             // Cleanup on unmount
             return () => unsubscribe();
         }
@@ -97,6 +94,7 @@ const page: React.FC = () => {
         if (selectedSlot && formattedDate && providerID) {
             try {
                 setLoading(true);
+                setSelectedSlot(null)
                 const response = await fetch("/api/appointment/book", {
                     method: "POST",
                     headers: {
@@ -121,6 +119,7 @@ const page: React.FC = () => {
                 } else {
                     const errorData = await response.json();
                     setError(errorData.message);
+                    setLoading(false)
                 }
             } catch (err) {
                 console.error("Error booking appointment:", err);
@@ -137,8 +136,10 @@ const page: React.FC = () => {
     // to manage the changing date by calender
     const handleDateChange = (date: Date | null) => {
         if (date) {
+            console.log(formattedDate)
             setSelectedDate(date);
             setFormattedDate(formatDate(date));
+            setSelectedSlot(null)
         }
     };
     return (
@@ -148,6 +149,7 @@ const page: React.FC = () => {
                     <ProviderProfile provider={provider} />
                     <CalendarSection selectedDate={selectedDate} handleDateChange={handleDateChange} />
                     <ProviderAvailabilitySlot
+                        Loading={loading}
                         selectedSlot={selectedSlot}
                         handleSlotClick={handleSlotClick}
                         handleBookAppointment={handleBookAppointment}

@@ -8,6 +8,7 @@ interface ProviderAvailabilitySlotProps {
   handleSlotClick: (slot: Slot) => void;
   selectedSlot: Slot | null; // Added prop to highlight selected slot
   handleBookAppointment: () => void;
+  Loading:boolean
 }
 
 const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
@@ -15,6 +16,7 @@ const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
   slotsForSelectedDate,
   handleSlotClick,
   selectedSlot,
+  Loading,
   handleBookAppointment
 }) => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -61,7 +63,9 @@ const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
           <p className="text-gray-500">No slots Available for this date</p>
         )}
       </div>
-
+          {Loading&&(
+            <>Booking...</>
+          )}
       {selectedSlot && !selectedSlot.isBooked && (
         <Button
           onClick={openConfirmDialog}
