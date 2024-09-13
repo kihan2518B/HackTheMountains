@@ -1,7 +1,7 @@
 "use client"
 
 import LogoutButton from "@/components/LogoutButton";
-import { Availability, Provider, Slot } from "@/types";
+import { Appointment, Availability, Provider, Slot, TypeUser } from "@/types";
 import { getUserIdFromToken } from "@/utils/utils";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
@@ -11,6 +11,7 @@ import { db } from "@/config/firebase";
 import SlotContainer from "@/components/provider/SlotContainer";
 import CalendarSection from "@/components/provider/CalendarSection";
 import ProviderProfile from "@/components/provider/ProviderProfile";
+import BookedAppointments from "@/components/provider/BookedAppointments";
 
 export default function ProviderDashboard() {
   // Function to format the date
@@ -18,11 +19,11 @@ export default function ProviderDashboard() {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
+    return `${year}-${month}-${day}`;
   };
 
   const [token, setToken] = useState<string | null>(null);
-  const [userID, setUserID] = useState<string | null>(null);
+  const [providerID, setProviderID] = useState<string | null>(null);
   const [provider, setProvider] = useState<Provider | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // default placing today's date
   const [formattedDate, setFormattedDate] = useState<string>(formatDate(new Date()));
@@ -31,6 +32,13 @@ export default function ProviderDashboard() {
   const [existingSlots, setExistingSlots] = useState<Slot[]>([]);
   const [mergedAvailability, setMergedAvailability] = useState<Availability[]>([])
   const [isAddSlotsDialogOpen, setIsAddSlotsDialogOpen] = useState<boolean>(false);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [users, setUsers] = useState<{ [key: string]: TypeUser }>({});
+  const [appoinmentsLoading, setAppoinmentsLoading] = useState<boolean>(true);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [selectedAction, setSelectedAction] = useState<string>('');
+  const [showStatusConfirmDialog, setShowStatusConfirmDialog] = useState<boolean>(false);
+
 
   // this is used for fetching the token from the localstorage
   useEffect(() => {
@@ -39,9 +47,9 @@ export default function ProviderDashboard() {
       setToken(userToken);
 
       if (userToken) {
-        const userID = getUserIdFromToken(userToken);
-        setUserID(userID);
-        // console.log("availability", availability);
+        const providerID = getUserIdFromToken(userToken);
+        setProviderID(providerID);
+        console.log("availability", availability);
       }
     }
   }, []);
@@ -49,10 +57,10 @@ export default function ProviderDashboard() {
   // this we are used for fetching the provider from the provider collection of mongoDB, who has the same value of userId as the userID coming from the token
   useEffect(() => {
     const getProvider = async () => {
-      if (!userID) return;
+      if (!providerID) return;
 
       try {
-        const response = await fetch(`/api/provider/getProvider?userID=${userID}`);
+        const response = await fetch(`/api/provider/getProvider?providerID=${providerID}`);
         const result = await response.json();
 
         if (result.user) {
@@ -65,8 +73,8 @@ export default function ProviderDashboard() {
       }
     };
 
-    if (userID) { getProvider(); }
-  }, [userID]);
+    if (providerID) { getProvider(); }
+  }, [providerID]);
 
   // console.log("formattedDate", formattedDate)  
 
@@ -75,7 +83,7 @@ export default function ProviderDashboard() {
 
     const fetchAvailability = async () => { 
       try {
-        const q = query(collection(db, "availabilities"), where("providerID", "==", userID));
+        const q = query(collection(db, "availabilities"), where("providerID", "==", providerID));
         
         // Set up the real-time listener
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -101,8 +109,8 @@ export default function ProviderDashboard() {
       }
     };
     
-      if(userID) fetchAvailability();
-    },[selectedDate, userID, availability]);
+      if(providerID) fetchAvailability();
+    },[selectedDate, providerID, availability]);
 
   // for open the add slot dialog
   const handleDialogOpen = () => {setIsAddSlotsDialogOpen(true)}; 
@@ -141,7 +149,7 @@ const addSlot = () => {
       // Add the new slot to the existing slots array for the already existing date
       const updatedAvailability = availability.map((a) =>
         a.date === formattedDate
-          ? { ...a, slots: [...a.slots, { time: slotTime, isBooked: false }],}
+          ? { ...a, slots: [...a.slots, { time: slotTime, status: "ADDED" }],}
           : a
       );
 
@@ -150,7 +158,7 @@ const addSlot = () => {
       // If date doesn't exist, create new availability for the selected date
       const newAvailability = [
         ...availability,
-        { date: formattedDate, slots: [{ time: slotTime, isBooked: false }] },
+        { date: formattedDate, slots: [{ time: slotTime, status: "ADDED" }] },
       ];
 
       setAvailability(newAvailability);
@@ -174,7 +182,7 @@ const mergeAvailability = (availabilityArray: any[]) => {
     // puting the the value of time and isBooked which is coming from the props
     const updatedSlots = slots.map((slot) => ({
       time: slot.time || slot, 
-      isBooked: slot.isBooked
+      status: slot.status
     })).filter((slot) => slot.time);
 
     // Only add the date if there are valid slots
@@ -201,9 +209,9 @@ const mergeAvailability = (availabilityArray: any[]) => {
  // Save Availability to Firestore
  const saveAvailabilityToFirestore = async () => {
   try {
-    if (!userID) { toast.error("No provider found"); return; }
+    if (!providerID) { toast.error("No provider found"); return; }
 
-    const q = query(collection(db, "availabilities"), where("providerID", "==", userID));
+    const q = query(collection(db, "availabilities"), where("providerID", "==", providerID));
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
@@ -254,6 +262,20 @@ const handleRemoveSlot = (slotTime) => {
 // for set the colour difference of time div
 const localTimeColour = new Set(availability.find((a) => a.date === formattedDate)?.slots.map(slot => slot.time));
 
+// for changing the color of slot according to status
+const getSlotStatusColor = (status: string) => {
+  switch (status) {
+    case "ADDED":
+      return "bg-blue-300";
+    case "PENDING":
+      return "bg-yellow-300";
+    case "CONFIRM":
+      return "bg-green-300";
+    case "CANCEL":
+      return "bg-red-300";
+  }
+};
+
 // finding the slots for the selected date
 const slotsForSelectedDate = mergedAvailability.find((a) => a.date === formattedDate)?.slots;
 
@@ -267,14 +289,164 @@ const handleDateChange = (date: Date | null) => {
 
 // console.log("mergedAvailability", mergedAvailability)
 
+useEffect(() => {
+  if (!providerID) return;
+
+  const fetchAppointmentsAndSyncAvailability = async () => {
+    const appointmentsQuery = query(collection(db, "appointments"), where("providerID", "==", providerID));
+
+    const unsubscribe = onSnapshot(appointmentsQuery, async(snapshot) => {
+      const fetchedAppointments = snapshot.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      })) as Appointment[];
+
+      const sortedAppointments = fetchedAppointments.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      setAppointments(sortedAppointments);
+      setAppoinmentsLoading(false);
+
+      // Now loop through each appointment and check availability
+      for (const appointment of sortedAppointments) {
+        await updateAvailabilityStatus(appointment);
+      }
+    });
+
+    return () => unsubscribe();
+  };
+
+  fetchAppointmentsAndSyncAvailability();
+}, [providerID]);
+
+// Function to update availability status
+const updateAvailabilityStatus = async (appointment: Appointment) => {
+  const { date, time, providerID, status } = appointment;
+  console.log("updateAvailabilityStatus is called")
+  try {
+    const availabilityQuery = query(collection(db, "availabilities"), where("providerID", "==", providerID));
+
+    
+    const availabilitySnapshot = await getDocs(availabilityQuery); // fetching the whole collection who match the providerID
+    // console.log("availabilitySnapshot", availabilitySnapshot) 
+
+    availabilitySnapshot.forEach(async (doc) => {
+      const availabilityData = doc.data().availability; // Fetch the availability array from the collection
+      // console.log("availabilityData", availabilityData)
+
+      // Find the availability array for the same date
+      const availabilityForDate = availabilityData.find((avail: any) => avail.date === date);
+
+      if (availabilityForDate) {
+        // console.log("availabilityForDate", availabilityForDate);
+
+        // Find the slot for the same time inside the availability array for that date
+        const slotIndex = availabilityForDate.slots.findIndex((slot: any) => slot.time === time);
+
+        if (slotIndex !== -1) {
+          // console.log("slotIndex", slotIndex);
+
+          // Update the status in the slots array who have same time
+          availabilityForDate.slots[slotIndex].status = status; // Update the status to match appointment status
+
+          // Update the availability document in Firestore
+          await updateDoc(doc.ref, { availability: availabilityData, }); // Update the entire availability array
+
+          console.log(`Updated availability status for ${date} at ${time} to ${status}`);
+        } else {
+          console.log("Slot not found for the specified time.");
+        }
+      } else {
+        console.log("No availability found for the specified date.");
+      }
+    });
+  } catch (error) {
+    console.error("Error updating availability status:", error);
+  }
+};
+
+useEffect(() => {
+  const fetchPatientDetails = async () => {
+    const uniquePatientIDs = Array.from(new Set(appointments.map((appointment) => appointment.userID))
+    );
+
+    const patientDetails = await Promise.all(
+      uniquePatientIDs.map(async (userID) => {
+        const response = await fetch(`/api/getUserByID?userID=${userID}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch user details");
+        }
+        const data = await response.json();
+        return {
+          [userID]: { name: data.user.name, email: data.user.email },
+        };
+      })
+    );
+
+    setUsers((prevPatients) => ({
+      ...prevPatients,
+      ...Object.assign({}, ...patientDetails),
+    }));
+  };
+
+  if (appointments.length > 0) {
+    fetchPatientDetails();
+  }
+}, [appointments]);
+
+const handleAppointmentClick = (appointment: Appointment, action: "CONFIRM" | "CANCEL") => {
+  if (appointment.status === action) {
+    toast.info(`Selected Appointment is already ${action.toLowerCase()}`);
+  } else {
+    setSelectedAppointment(appointment);
+    setSelectedAction(action);
+    setShowStatusConfirmDialog(true);
+  }
+};
+
+const handleAppointmentStatusUpdate = async () => {
+  if (!selectedAppointment || !selectedAction) return;
+  try {
+    const { date, time } = selectedAppointment;
+    const appointmentsQuery = query(
+      collection(db, "appointments"),
+      where("providerID", "==", providerID),
+      where("date", "==", date),
+      where("time", "==", time)
+    );
+
+    const snapshot = await getDocs(appointmentsQuery);
+    const docs = snapshot.docs;
+    const updatePromises = docs.map((doc) => updateDoc(doc.ref, { status: selectedAction }));
+    await Promise.all(updatePromises);
+
+    toast.success(`Appoitment status updated ${selectedAction.toLowerCase()} successfully`);
+  } catch (error) {
+    console.error("somthing gone wrong:", error);
+    toast.error("somthing gone wrong");
+  }
+
+  setShowStatusConfirmDialog(false);
+  setSelectedAppointment(null);
+};
+
+const handleAppointmentStatusCancel = () => {
+  setShowStatusConfirmDialog(false);
+  setSelectedAppointment(null);
+  setSelectedAction("");
+};
+
 return (
-  <div className="flex justify-between items-start p-6">
+  <div className="p-2">
+    <div className="flex justify-evenly gap-5 items-start">
+
     <ProviderProfile provider={provider} />
 
     <CalendarSection 
       selectedDate={selectedDate} 
       handleDateChange={handleDateChange} 
-    />
+      />
     <SlotContainer 
       selectedDate={selectedDate} 
       slotsForSelectedDate={slotsForSelectedDate} 
@@ -287,7 +459,24 @@ return (
       setSlotTime={setSlotTime} 
       isAddSlotsDialogOpen={isAddSlotsDialogOpen} 
       localTimeColour={localTimeColour} 
-    /> 
+      getSlotStatusColor={getSlotStatusColor}
+      /> 
+    </div>
+
+    <BookedAppointments 
+      providerID={providerID}
+      loading = {appoinmentsLoading}
+      appointments = {appointments}
+      users = {users}
+      handleAppointmentClick = {handleAppointmentClick}
+      showStatusConfirmDialog = {showStatusConfirmDialog}
+      handleAppointmentStatusUpdate = {handleAppointmentStatusUpdate}
+      handleAppointmentStatusCancel = {handleAppointmentStatusCancel}
+      selectedAppointment = {selectedAppointment}
+      selectedAction = {selectedAction}
+      getSlotStatusColor={getSlotStatusColor}
+    />
+    
   </div> 
 ); 
 }

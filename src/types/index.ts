@@ -21,12 +21,12 @@ interface TypeUser {
     name: string;
     email: string;
     role: "client"|"provider";
-    password: string
+    password: string;
 }
 
 interface Slot {
     time: string;
-    isBooked: boolean
+    status: string;
 }
 
 interface Availability {
@@ -34,4 +34,13 @@ interface Availability {
     slots: Slot[]
 }
 
-export type { Provider, Availability, Slot, Notification,TypeUser }
+interface Appointment {
+    id?: string;
+    providerID: string;
+    userID: string;
+    date: string;
+    time: string;
+    status: string;
+}
+
+export type { Provider, Availability, Slot, Notification, TypeUser, Appointment }

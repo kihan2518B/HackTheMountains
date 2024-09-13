@@ -8,7 +8,7 @@ export async function GET(req: Request) {
     try {
         await connectToDatabase();
         const { searchParams } = new URL(req.url);
-        const userID = searchParams.get('userID');
+        const userID = searchParams.get('providerID');
         // console.log("route",userID);
 
         if (!userID) {

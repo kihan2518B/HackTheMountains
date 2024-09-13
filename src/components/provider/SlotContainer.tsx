@@ -15,6 +15,7 @@ interface SlotContainerProps {
   setSlotTime: (time: string) => void;
   isAddSlotsDialogOpen: boolean;
   localTimeColour: Set<string>;
+  getSlotStatusColor: (status: string) => void
 }
 
 const SlotContainer: React.FC<SlotContainerProps> = ({
@@ -29,18 +30,17 @@ const SlotContainer: React.FC<SlotContainerProps> = ({
   isAddSlotsDialogOpen,
   localTimeColour,
   saveAvailabilityToFirestore,
+  getSlotStatusColor,
 }) => {
     
 
   return (
     <div className="bg-white w-52 p-4 shadow-lg rounded-md border border-gray-200 flex-1">
-      <h4 className="text-2xl font-semibold mb-2 text-gray-800">Selected Date</h4>
-      <p className="text-lg text-gray-600">
-        Date:{" "}
-        <span className="font-medium text-gray-800">
+      <h4 className="text-2xl font-semibold mb-2 text-gray-800">Selected Date:{" "}
+        <span className="font-medium text-gray-600">
           {selectedDate ? selectedDate.toDateString() : "No date selected"}
         </span>
-      </p>
+      </h4>
 
       {/* Display Slots for Selected Date */}
       <div className="mt-4">
@@ -50,15 +50,17 @@ const SlotContainer: React.FC<SlotContainerProps> = ({
             {slotsForSelectedDate.map((slot, index) => (
               <div
                 key={index}
-                className={`flex items-center gap-1 rounded-md w-fit p-2 ${localTimeColour.has(slot.time) ? 'bg-slate-300' : (slot.isBooked ? 'bg-green-300' : 'bg-yellow-300')}`}
+                className={`flex items-center gap-1 rounded-md w-24 justify-evenly p-2 ${localTimeColour.has(slot.time) ? 'bg-slate-300' : getSlotStatusColor(slot.status)}`}
               >
                 <p className="">{slot.time}</p>
-                <IconButton
-                  size="small"
-                  onClick={() => handleRemoveSlot(slot.time)} // Remove slot on click
-                >
-                  <DeleteIcon fontSize="small" className="text-red-500" />
-                </IconButton>
+                {(slot.status) === "ADDED"  &&
+                  <IconButton
+                    size="small"
+                    onClick={() => handleRemoveSlot(slot.time)} // Remove slot on click
+                  >
+                    <DeleteIcon fontSize="small" className="text-red-500" />
+                  </IconButton>
+                }
               </div>
             ))}
           </div>
