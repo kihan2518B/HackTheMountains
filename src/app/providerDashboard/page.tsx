@@ -436,7 +436,7 @@ export default function ProviderDashboard() {
     <div className="p-2">
       <div className="flex flex-col justify-evenly gap-5 items-start">
         <div className="w-full">
-          <ProviderProfile provider={provider} />
+          <h2 className="text-2xl md:text-3xl font-semibold text-ColorOne mb-2">{provider?.name.split(" ")[0]}'s Schedule</h2>
         </div>
         <div className="w-full flex gap-4 items-start justify-center sm:flex-row flex-col">
 
