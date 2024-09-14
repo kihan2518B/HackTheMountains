@@ -206,8 +206,8 @@ const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
             >
               <div className="flex flex-col gap-2">
                 <p className="text-lg font-semibold text-ColorTwo">Appointment</p>
-                <p>Date: <span className='font-serif'>{appointment.date}</span></p>
-                <p>Time: <span className='font-serif'>{appointment.time}</span></p>
+                <p>Date: <span className=''>{appointment.date}</span></p>
+                <p>Time: <span className=''>{appointment.time}</span></p>
                 <div className="flex items-center">
                   <p>Status: </p>
                   <span

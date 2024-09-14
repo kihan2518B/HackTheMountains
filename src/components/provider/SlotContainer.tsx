@@ -38,7 +38,7 @@ const SlotContainer: React.FC<SlotContainerProps> = ({
       <div className="bg-white w-full p-6 shadow-lg rounded-md border border-gray-200 flex flex-col">
         <h4 className="text-xl md:text-2xl font-semibold mb-4 text-gray-800">
           Selected Date:{" "}
-          <span className="font-medium  font-serif text-gray-600">
+          <span className="font-medium text-gray-600">
             {selectedDate ? selectedDate.toDateString() : "No date selected"}
           </span>
         </h4>
@@ -53,7 +53,7 @@ const SlotContainer: React.FC<SlotContainerProps> = ({
                   key={index}
                   className={`flex items-center gap-1 rounded-md w-24 md:w-28 justify-center p-2 ${localTimeColour.has(slot.time) ? 'bg-slate-300' : getSlotStatusColor(slot.status)}`}
                 >
-                  <p className="text-xl text-ColorTwo font-serif md:text-xl">{slot.time}</p>
+                  <p className="text-xl text-ColorTwo md:text-xl">{slot.time}</p>
                   {slot.status === "ADDED" && (
                     <IconButton
                       size="small"
