@@ -43,6 +43,7 @@ export default function ProviderDashboard() {
         const providerID = getUserIdFromToken(userToken);
         setProviderID(providerID);
         console.log("availability", availability);
+        console.log("providerID", providerID);
 
       }
     }

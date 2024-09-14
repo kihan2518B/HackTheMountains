@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { Slot } from '@/types';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { CardElement } from '@stripe/react-stripe-js';
 
 interface ProviderAvailabilitySlotProps {
   selectedDate: Date;
   slotsForSelectedDate: Slot[] | null;
   handleSlotClick: (slot: Slot) => void;
   selectedSlot: Slot | null; // Added prop to highlight selected slot
-  handleBookAppointment: () => void;
+  handleConfirmAppointment: () => void;
   Loading: boolean;
+  paymentError: string | null;
+  paymentLoading: boolean;
+  stripe: any;
 }
 
 const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
@@ -17,17 +21,21 @@ const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
   handleSlotClick,
   selectedSlot,
   Loading,
-  handleBookAppointment
+  handleConfirmAppointment,
+  paymentError,
+  paymentLoading,
+  stripe
+
 }) => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
   const openConfirmDialog = () => setIsConfirmDialogOpen(true);
   const closeConfirmDialog = () => setIsConfirmDialogOpen(false);
 
-  const handleConfirmAppointment = () => {
-    handleBookAppointment();
-    closeConfirmDialog();
-  };
+  // const handleConfirmAppointment = () => {
+  //   handleBookAppointment();
+  //   closeConfirmDialog();
+  // };
 
   const getSlotStatusColor = (status: string) => {
     switch (status) {
@@ -105,13 +113,17 @@ const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
             <strong>{new Date(selectedDate || '').toLocaleDateString()}</strong> at{' '}
             <strong>{selectedSlot ? selectedSlot.time : ''}</strong>?
           </p>
+          <div className='m-2 border border-gray-300'>
+            <CardElement />
+          </div>
+          {paymentError && <p style={{ color: 'red' }}>{paymentError}</p>}
         </DialogContent>
         <DialogActions>
           <Button onClick={closeConfirmDialog} variant="contained" color="error">
             Cancel
           </Button>
-          <Button onClick={handleConfirmAppointment} variant="contained" color="primary">
-            Confirm
+          <Button onClick={handleConfirmAppointment} variant="contained" color="primary" disabled={!stripe || paymentLoading}>
+            {paymentLoading ? 'Processing...' : 'Pay & Confirm'}
           </Button>
         </DialogActions>
       </Dialog>

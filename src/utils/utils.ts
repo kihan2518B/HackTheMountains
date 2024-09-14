@@ -18,8 +18,8 @@ export function getUserRoleFromToken(token: string): string {
 
   export function getUserIdFromToken(token: string): string {
     try {
-      const { id } = JSON.parse(atob(token.split('.')[1])); // tacking id from the token
-      return id; 
+      const { _id } = JSON.parse(atob(token.split('.')[1])); // tacking id from the token
+      return _id; 
     } catch {
       return '';
     }

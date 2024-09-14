@@ -13,6 +13,12 @@ import { connectToDatabase } from "@/config/MongoConnect";
 import { AddDataInFireStore } from "@/helpers/(firebase)/addData";
 import { getAvailabilityFromFirestore } from "@/helpers/(firebase)/GetData";
 
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: '2024-06-20',
+});
+
 export const POST = async (req: Request) => {
     try {
         const decodedUser = await middleware(req) as Omit<TypeUser, 'password'>;
@@ -22,11 +28,11 @@ export const POST = async (req: Request) => {
             await connectToDatabase();
 
             //checking if provider is there
-            const { providerID, date, slot } = await req.json();
-            console.log("providerID,date,slot", providerID, date, slot)
+            const { providerID, date, slot, paymentIntentId } = await req.json();
+            console.log("providerID,date,slot, paymentIntentId", providerID, date, slot, paymentIntentId)
             //If date and slot are not provided
-            if (!date || !slot) {
-                throw new Error("Date and Slot is required!!")
+            if (!date || !slot || !paymentIntentId) {
+                throw new Error("Date, paymentIntentId and Slot is required!!")
             }
 
             const provider = await Provider.findOne({ userID: providerID });
@@ -35,6 +41,15 @@ export const POST = async (req: Request) => {
                     status: 404,
                     headers: { 'Content-Type': 'application/json' },
                 });
+            }
+
+             // Capture the payment intent
+             const paymentIntent = await stripe.paymentIntents.capture(paymentIntentId);
+             console.log("Captured Payment Intent:", paymentIntent);
+
+            // Check payment intent status
+            if (paymentIntent.status !== 'succeeded') {
+                throw new Error("Payment not captured successfully.");
             }
 
             // Convert the date string to a Date object for comparison
@@ -77,7 +92,8 @@ export const POST = async (req: Request) => {
                 providerID,
                 date: `${date}`,
                 time: slot,
-                status: "PENDING"
+                status: "PENDING",
+                paymentIntentId,
             };
             console.log("newAppointment:", newAppointment);
 
@@ -86,7 +102,7 @@ export const POST = async (req: Request) => {
             //Sending notification when appointment is booked
             await sendNotification(providerID, `You have a new booking on ${date.split("T")[0]} at ${slot}, appointment is from ${decodedUser.email}`)
 
-            return new NextResponse(JSON.stringify({ message: "Appointment booked succesfully!!", appointment: newAppointment, provider }), {
+            return new NextResponse(JSON.stringify({ message: "Appointment booked succesfully!!", appointment: newAppointment, provider, paymentIntent }), {
                 status: 201,
                 headers: { 'Content-Type': 'application/json' }
             })

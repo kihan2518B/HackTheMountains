@@ -11,9 +11,10 @@ import { db } from "@/config/firebase";
 import ProviderProfile from "@/components/provider/ProviderProfile";
 import CalendarSection from "@/components/provider/CalendarSection";
 import ProviderAvailabilitySlot from "@/components/customer/ProviderAvailabilitySlot";
-
+import { CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { Provider, Slot, Availability } from "@/types";
 import { formatDate } from "@/helpers/formateDate";
+import { loadStripe } from "@stripe/stripe-js";
 
 const page: React.FC = () => {
 
@@ -29,6 +30,14 @@ const page: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [availabilities, setAvailabilities] = useState<Availability[]>([]);
     const [slotsForSelectedDate, setSlotsForSelectedDate] = useState<Slot[] | null>(null);
+
+    const stripe = useStripe();
+    const elements = useElements();
+    const [paymentLoading, setPaymentLoading] = useState<boolean>(false);
+    const [paymentError, setPaymentError] = useState<string | null>(null);
+
+    
+    
 
 
     useEffect(() => {
@@ -92,8 +101,86 @@ const page: React.FC = () => {
         }
     };
 
-    const handleBookAppointment = async () => {
-        if (selectedSlot && formattedDate && providerID) {
+    const handleConfirmAppointment = async () => {
+        if (!stripe || !elements) { return; }
+      
+        setPaymentLoading(true);
+        const cardElement = elements.getElement(CardElement);
+
+        toast.info("starting payment")
+        try {
+            const res = await fetch("/api/payment/intent", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                amount: 5000, // Amount in paise (e.g., 5000 paise = 50 INR)
+                providerID,
+                slot: selectedSlot?.time,
+                date: formattedDate,
+              }),
+            });
+      
+            const { clientSecret, paymentIntentId } = await res.json();
+            console.log("clientSecret", clientSecret);
+            console.log("paymentIntentId", paymentIntentId);
+      
+            // Confirm the payment
+            const result = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: {
+                card: cardElement!,
+                },
+            });
+
+            console.log("result", result)
+
+            if (result.error) {
+                setPaymentError(result.error.message || 'Payment failed');
+                toast.error(result.error.message || 'Payment failed')
+                setPaymentLoading(false);
+                return;
+            }
+
+            console.log("result.paymentIntent?.status", result.paymentIntent?.status)
+
+            if (result.paymentIntent?.status === 'succeeded' || result.paymentIntent?.status === 'requires_capture') {
+                toast.success("Payment successful");
+                handleBookAppointment(paymentIntentId);
+            } 
+          } catch (error) {
+            setPaymentError("Payment failed. Please try again.");
+            setPaymentLoading(false);
+          }
+        };
+
+        const handleCapturePayment = async (paymentIntentId: string) => {
+            try {
+                const res = await fetch("/api/payment/capture", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ paymentIntentId }),
+                });
+        
+                const { paymentIntent } = await res.json();
+                console.log("Payment captured:", paymentIntent);
+        
+                if (paymentIntent.status === 'succeeded') {
+                    toast.success("Payment captured successfully");
+                    handleBookAppointment(paymentIntentId);
+                } else {
+                    toast.error("Failed to capture payment");
+                    setPaymentLoading(false);
+                }
+            } catch (error) {
+                console.error("Error capturing payment:", error);
+                setPaymentError("Failed to capture payment.");
+                setPaymentLoading(false);
+            }
+        };
+
+
+    const handleBookAppointment = async (paymentIntentId: string) => {
+        if (selectedSlot && formattedDate && providerID && paymentIntentId) {
+            toast.info("starting bokking confirmation")
             try {
                 setLoading(true);
                 setSelectedSlot(null)
@@ -107,6 +194,7 @@ const page: React.FC = () => {
                         providerID,
                         date: formattedDate,
                         slot: selectedSlot.time,
+                        paymentIntentId,
                     }),
                 });
 
@@ -154,9 +242,12 @@ const page: React.FC = () => {
                         Loading={loading}
                         selectedSlot={selectedSlot}
                         handleSlotClick={handleSlotClick}
-                        handleBookAppointment={handleBookAppointment}
+                        handleConfirmAppointment={handleConfirmAppointment}
                         selectedDate={selectedDate}
                         slotsForSelectedDate={slotsForSelectedDate}
+                        paymentError = {paymentError}
+                        paymentLoading = {paymentLoading}
+                        stripe = {stripe}
                     />
                 </div>
             ) : (

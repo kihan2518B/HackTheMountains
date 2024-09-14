@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { isTokenExpired } from "@/utils/utils";
 import Navbar from "@/components/Navbar";
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -49,6 +51,14 @@ export default function RootLayout({
     checkAuthentication();
   }, [pathname, router]);
 
+    const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
+    if (!stripePublishableKey) {
+    throw new Error("Stripe publishable key is missing");
+    }
+
+    const stripePromise = loadStripe(stripePublishableKey);
+
 
   return (
     <html lang="en">
@@ -57,7 +67,9 @@ export default function RootLayout({
           (
             <>
               {showNavbar && <Navbar />}
-              {children}
+              <Elements stripe={stripePromise}>
+                {children}
+              </Elements>
               <ToastContainer />
             </>
           )
