@@ -8,7 +8,7 @@ interface ProviderAvailabilitySlotProps {
   handleSlotClick: (slot: Slot) => void;
   selectedSlot: Slot | null; // Added prop to highlight selected slot
   handleBookAppointment: () => void;
-  Loading:boolean
+  Loading: boolean;
 }
 
 const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
@@ -27,6 +27,21 @@ const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
   const handleConfirmAppointment = () => {
     handleBookAppointment();
     closeConfirmDialog();
+  };
+
+  const getSlotStatusColor = (status: string) => {
+    switch (status) {
+      case "ADDED":
+        return "bg-gray-300";
+      case "PENDING":
+        return "bg-yellow-300";
+      case "CONFIRM":
+        return "bg-green-300";
+      case "CANCEL":
+        return "bg-red-300";
+      default:
+        return "";
+    }
   };
 
   return (
@@ -48,12 +63,11 @@ const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
               <div
                 key={index}
                 onClick={() => handleSlotClick(slot)}
-                className={`flex items-center gap-1 rounded-md w-fit p-2 cursor-pointer ${slot === selectedSlot
-                    ? 'border-2 border-red-500 bg-yellow-300'
-                    : slot.isBooked
-                      ? 'bg-green-300'
-                      : 'bg-yellow-300'
-                  }`}
+                className={`flex items-center gap-1 rounded-md w-fit p-2 cursor-pointer ${
+                  slot === selectedSlot
+                    ? 'border-2 border-blue-500 bg-blue-300'
+                    : getSlotStatusColor(slot.status)
+                }`}
               >
                 <p>{slot.time}</p>
               </div>
@@ -63,10 +77,10 @@ const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
           <p className="text-gray-500">No slots Available for this date</p>
         )}
       </div>
-          {Loading&&(
-            <>Booking...</>
-          )}
-      {selectedSlot && !selectedSlot.isBooked && (
+
+      {Loading && <>Booking...</>}
+
+      {selectedSlot && selectedSlot.status === "ADDED" &&(
         <Button
           onClick={openConfirmDialog}
           variant="contained"

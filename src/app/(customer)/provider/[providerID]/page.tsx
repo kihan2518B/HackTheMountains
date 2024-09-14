@@ -85,8 +85,10 @@ const page: React.FC = () => {
     }, [selectedDate, availabilities])
 
     const handleSlotClick = (slot: Slot) => {
-        if (!slot.isBooked) {
+        if (slot.status === 'ADDED') {
             setSelectedSlot(slot)
+        } else {
+            toast.info("Selected slot is already booked")
         }
     };
 

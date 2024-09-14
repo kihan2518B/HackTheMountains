@@ -12,8 +12,6 @@ import { sendNotification } from "@/helpers/notification";
 import { connectToDatabase } from "@/config/MongoConnect";
 import { AddDataInFireStore } from "@/helpers/(firebase)/addData";
 import { getAvailabilityFromFirestore } from "@/helpers/(firebase)/GetData";
-import { updateSlotStatusInFirestore } from "@/helpers/(firebase)/UpdateData";
-
 
 export const POST = async (req: Request) => {
     try {
@@ -64,7 +62,7 @@ export const POST = async (req: Request) => {
             }
 
             // Find the specific slot and mark it as booked
-            const slotToBook = existingAvailability.slots.find((s: Slot) => s.time === slot && !s.isBooked);
+            const slotToBook = existingAvailability.slots.find((s: Slot) => s.time === slot && s.status === 'ADDED');
             console.log("slotToBook: ", slotToBook)
             //Slot is already booked
             if (!slotToBook) {
@@ -73,11 +71,6 @@ export const POST = async (req: Request) => {
                     headers: { 'Content-Type': 'application/json' },
                 });
             }
-
-            slotToBook.isBooked = true;
-
-            // Save the updated provider's availability
-            await updateSlotStatusInFirestore(docID, selectedDate.toISOString().split('T')[0], slot);
 
             const newAppointment = {
                 userID: decodedUser._id,
