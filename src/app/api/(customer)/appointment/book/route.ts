@@ -100,7 +100,7 @@ export const POST = async (req: Request) => {
             await AddDataInFireStore("appointments", newAppointment);
 
             //Sending notification when appointment is booked
-            await sendNotification(providerID, `You have a new booking on ${date.split("T")[0]} at ${slot}, appointment is from ${decodedUser.email}`)
+            await sendNotification(providerID, `You have a new booking on ${date.split("T")[0]} at ${slot}, appointment is from ${decodedUser.name}`)
 
             return new NextResponse(JSON.stringify({ message: "Appointment booked succesfully!!", appointment: newAppointment, provider, paymentIntent }), {
                 status: 201,

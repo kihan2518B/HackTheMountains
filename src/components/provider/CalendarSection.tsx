@@ -9,7 +9,7 @@ interface CalendarSectionProps {
 
 const CalendarSection: React.FC<CalendarSectionProps> = ({ selectedDate, handleDateChange }) => {
   return (
-    <div className="bg-white p-4 shadow-md rounded-md border border-gray-200">
+    <div className="bg-white p-4 shadow-md rounded-md w-full flex flex-col justify-center items-center border border-gray-200">
       <h3 className="text-xl font-semibold text-gray-700 mb-4">Calendar</h3>
       <DatePicker
         selected={selectedDate}
