@@ -3,7 +3,7 @@ import { Tab } from '@headlessui/react';
 import { Appointment, TypeUser } from '@/types';
 import { CircularProgress, Button, Dialog, DialogContent } from '@mui/material';
 
-interface BookedAppointmentsProps {
+interface CustomerBookedAppointmentsProps {
   providerID: string;
   appointments: Appointment[];
   loading: boolean;
@@ -17,7 +17,7 @@ interface BookedAppointmentsProps {
   getSlotStatusColor: (status: string) => string;
 }
 
-const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
+const CustomerBookedAppointments: React.FC<CustomerBookedAppointmentsProps> = ({
   providerID,
   appointments,
   loading,
@@ -74,14 +74,8 @@ const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
                 )}
               </div>
 
-              {!isPast && (
+              {!isPast && appointment.status === "CONFIRM" && (
                 <div className="flex justify-between mt-4 gap-2">
-                  <button
-                    className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
-                    onClick={() => handleAppointmentClick(appointment, 'CONFIRM')}
-                  >
-                    Confirm
-                  </button>
                   <button
                     className="bg-[#FF5733] hover:bg-[#D94323] text-white font-bold py-2 px-4 rounded"
                     onClick={() => handleAppointmentClick(appointment, 'CANCEL')}
@@ -90,6 +84,8 @@ const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
                   </button>
                 </div>
               )}
+
+              {/* No buttons for CANCEL, PENDING status */}
             </div>
           );
         })
@@ -98,6 +94,7 @@ const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
       )}
     </>
   );
+
 
   return (
     <div className="appointments-container flex flex-col lg:flex-wrap p-4">
@@ -162,7 +159,7 @@ const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
   );
 };
 
-export default BookedAppointments;
+export default CustomerBookedAppointments;
 
 interface ConfirmDialogProps {
   open: boolean;

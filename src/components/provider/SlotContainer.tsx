@@ -33,6 +33,17 @@ const SlotContainer: React.FC<SlotContainerProps> = ({
   getSlotStatusColor,
 }) => {
 
+  // Function to convert time string into comparable format (e.g., "14:00" to 840 minutes)
+  const convertTimeToMinutes = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // Sort the slots based on the time in ascending order
+  const sortedSlots = slotsForSelectedDate
+    ? slotsForSelectedDate.sort((a, b) => convertTimeToMinutes(a.time) - convertTimeToMinutes(b.time))
+    : [];
+
   return (
     <div className="w-full">
       <div className="bg-white w-full p-6 shadow-lg rounded-md border border-gray-200 flex flex-col">
@@ -46,9 +57,9 @@ const SlotContainer: React.FC<SlotContainerProps> = ({
         {/* Display Slots for Selected Date */}
         <div className="mt-2">
           <h5 className="text-lg md:text-xl font-medium mb-2">Availability:</h5>
-          {slotsForSelectedDate && slotsForSelectedDate.length > 0 ? (
+          {sortedSlots && sortedSlots.length > 0 ? (
             <div className="flex flex-wrap gap-2 overflow-y-auto">
-              {slotsForSelectedDate.map((slot, index) => (
+              {sortedSlots.map((slot, index) => (
                 <div
                   key={index}
                   className={`flex items-center gap-1 rounded-md w-24 md:w-28 justify-center p-2 ${localTimeColour.has(slot.time) ? 'bg-slate-300' : getSlotStatusColor(slot.status)}`}

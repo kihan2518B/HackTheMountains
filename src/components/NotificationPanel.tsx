@@ -9,6 +9,7 @@ export interface NotificationPanelProps {
     notifications: Notification[];
     unreadCount: number;
     handleClose: () => void;
+    markAsRead: (notificationId: string) => void;
     anchorElNotifications: null | HTMLElement;
 }
 
@@ -16,10 +17,12 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
     notifications,
     unreadCount,
     handleClose,
+    markAsRead,
     anchorElNotifications
 }) => {
     const handleNotificationClick = async (notificationId: string) => {
         handleClose();
+        markAsRead(notificationId)
     };
 
     return (
