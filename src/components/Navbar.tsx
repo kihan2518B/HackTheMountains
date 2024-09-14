@@ -95,7 +95,7 @@ const Navbar = () => {
                 })) as Notification[];
     
                 // Log to check if the fetched notifications are correct
-                console.log("Fetched Notifications:", fetchedNotifications);
+                // console.log("Fetched Notifications:", fetchedNotifications);
     
                 // Update notifications state
                 setNotifications(fetchedNotifications);
