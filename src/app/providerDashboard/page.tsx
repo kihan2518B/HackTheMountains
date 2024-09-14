@@ -43,6 +43,7 @@ export default function ProviderDashboard() {
         const providerID = getUserIdFromToken(userToken);
         setProviderID(providerID);
         console.log("availability", availability);
+
       }
     }
   }, []);
@@ -53,7 +54,7 @@ export default function ProviderDashboard() {
       if (!providerID) return;
 
       try {
-        const response = await fetch(`/api/provider/getProvider?providerID=${providerID}`);
+        const response = await fetch(`/api/provider/getProvider?userID=${providerID}`);
         const result = await response.json();
 
         if (result.user) {
