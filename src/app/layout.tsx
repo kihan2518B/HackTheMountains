@@ -43,17 +43,6 @@ export default function RootLayout({
           setLoading(false);
         }
         console.log("Token Is there")
-      } else {
-        // Check if the current path is allowed without token
-        console.log("not token")
-        if (pathname === '/signup' || pathname === '/login' || pathname === '/registerProvider') {
-          setShowNavbar(false);
-        } else {
-          setShowNavbar(false);
-          router.push('/login'); // Hide Navbar for non-authenticated users on specific routes
-        }
-        console.log("Token Is not there")
-        setLoading(false);
       }
     };
 
@@ -64,15 +53,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} overflow-x-hidden scroll-smooth p-0 m-0`}>
-        {loading ? (<div>Loading...</div>) : 
-        (
-          <>
-          {showNavbar && <Navbar />}
-          {children}
-          <ToastContainer />
-        </>
-        )
-      }
+        {loading ? (<div>Loading...</div>) :
+          (
+            <>
+              {showNavbar && <Navbar />}
+              {children}
+              <ToastContainer />
+            </>
+          )
+        }
       </body>
     </html>
   );

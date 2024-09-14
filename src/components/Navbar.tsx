@@ -22,10 +22,10 @@ import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 
 import NotificationPanel from './NotificationPanel';
 import { getUserRoleFromToken } from '@/utils/utils';
+import LogoutButton from './LogoutButton';
 
 const pages = [
     { title: 'Home', link: '/', isCustomer: true, isProvider: true },
-    { title: 'Schedule', link: '/provider/schedule', isCustomer: false, isProvider: true },
     { title: 'Book a appointment', link: '/customerDashboard', isCustomer: true, isProvider: true },
     { title: 'Dashboard', link: '/providerDashboard', isCustomer: false, isProvider: true },
     { title: 'Become A Provider', link: '/registerProvider', isCustomer: true, isProvider: false },
@@ -33,7 +33,6 @@ const pages = [
 
 const settings = [
     { title: 'Profile', link: 'profile', isCustomer: true, isProvider: true },
-    { title: 'Logout', link: '/logout', isCustomer: true, isProvider: true },
 ];
 
 
@@ -60,7 +59,6 @@ const Navbar = () => {
         }
     }, [])
     useEffect(() => {
-        // console.log("token from Navbar", token);
         if (token) {
             const UserRole = getUserRoleFromToken(token);
             // console.log(UserRole)
@@ -90,6 +88,16 @@ const Navbar = () => {
 
     const handleCloseNotifications = () => {
         setAnchorElNotifications(null);
+    };
+
+    const handleLogout = async () => {
+        try {
+            localStorage.removeItem('token'); // removing token from the localstorage
+            router.push("/login");
+        } catch (error) {
+            toast.error('Logout failed');
+            console.error(error);
+        }
     };
 
     return (
@@ -227,6 +235,7 @@ const Navbar = () => {
                                     </Link>
                                 </MenuItem>
                             ))}
+                            <LogoutButton />
                         </Menu>
                     </Box>
                 </Toolbar>

@@ -1,6 +1,5 @@
 "use client"
 
-import LogoutButton from "@/components/LogoutButton";
 import { Appointment, Availability, Provider, Slot, TypeUser } from "@/types";
 import { getUserIdFromToken } from "@/utils/utils";
 import { useEffect, useState } from "react";
@@ -12,15 +11,9 @@ import SlotContainer from "@/components/provider/SlotContainer";
 import CalendarSection from "@/components/provider/CalendarSection";
 import ProviderProfile from "@/components/provider/ProviderProfile";
 import BookedAppointments from "@/components/provider/BookedAppointments";
+import { formatDate } from "@/helpers/formateDate";
 
 export default function ProviderDashboard() {
-  // Function to format the date
-  const formatDate = (date: Date): string => {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${year}-${month}-${day}`;
-  };
 
   const [token, setToken] = useState<string | null>(null);
   const [providerID, setProviderID] = useState<string | null>(null);
@@ -81,7 +74,7 @@ export default function ProviderDashboard() {
   // real-time fetching availability from Firestore for the selected date
   useEffect(() => {
 
-    const fetchAvailability = async () => {
+    const fetchAvailability = async () => { 
       try {
         const q = query(collection(db, "availabilities"), where("providerID", "==", providerID));
         
@@ -113,43 +106,43 @@ export default function ProviderDashboard() {
     },[selectedDate, providerID, availability]);
 
   // for open the add slot dialog
-  const handleDialogOpen = () => { setIsAddSlotsDialogOpen(true) };
+  const handleDialogOpen = () => {setIsAddSlotsDialogOpen(true)}; 
 
   // for close the add slot dialog and set the ('') value to the time field of dialog
-  const handleDialogClose = () => { setIsAddSlotsDialogOpen(false); setSlotTime('') };
+  const handleDialogClose = () => {setIsAddSlotsDialogOpen(false); setSlotTime('')}; 
 
-  // adding slot for local state
-  const addSlot = () => {
-    if (slotTime) {
-      // console.log("Adding slot:", slotTime, "for date:", formattedDate);
+// adding slot for local state
+const addSlot = () => {
+  if (slotTime) {
+    // console.log("Adding slot:", slotTime, "for date:", formattedDate);
 
-      // Check if the slot already exists in existingSlots (coming from Firestore)
-      const slotExistsInFirestore = existingSlots.some((slot) => slot.time === slotTime);
+    // Check if the slot already exists in existingSlots (coming from Firestore)
+    const slotExistsInFirestore = existingSlots.some((slot) => slot.time === slotTime);
 
-      if (slotExistsInFirestore) {
-        toast.error("Slot already saved for selected date");
+    if (slotExistsInFirestore) {
+      toast.error("Slot already saved for selected date");
+      setSlotTime(""); // set the ('') value to the time field of dialog
+      return; // Exit early if the slot already exists in Firestore
+
+    }
+
+    // Check if there's already availability for the selected date in local state
+    const existingAvailability = availability.find((a) => a.date === formattedDate);
+
+    if (existingAvailability) {
+      // If date exists, check if slot already exists locally
+      const slotExistsInLocalState = existingAvailability.slots.some((slot) => slot.time === slotTime);
+
+      if (slotExistsInLocalState) {
+        toast.error("Slot already added for selected date");
         setSlotTime(""); // set the ('') value to the time field of dialog
-        return; // Exit early if the slot already exists in Firestore
-
+        return; // Exit early if the slot already exists locally
       }
-
-      // Check if there's already availability for the selected date in local state
-      const existingAvailability = availability.find((a) => a.date === formattedDate);
-
-      if (existingAvailability) {
-        // If date exists, check if slot already exists locally
-        const slotExistsInLocalState = existingAvailability.slots.some((slot) => slot.time === slotTime);
-
-        if (slotExistsInLocalState) {
-          toast.error("Slot already added for selected date");
-          setSlotTime(""); // set the ('') value to the time field of dialog
-          return; // Exit early if the slot already exists locally
-        }
 
       // Add the new slot to the existing slots array for the already existing date
       const updatedAvailability = availability.map((a) =>
         a.date === formattedDate
-          ? { ...a, slots: [...a.slots, { time: slotTime, isBooked: false }],}
+          ? { ...a, slots: [...a.slots, { time: slotTime, status: "ADDED" }],}
           : a
       );
 
@@ -158,26 +151,26 @@ export default function ProviderDashboard() {
       // If date doesn't exist, create new availability for the selected date
       const newAvailability = [
         ...availability,
-        { date: formattedDate, slots: [{ time: slotTime, isBooked: false }] },
+        { date: formattedDate, slots: [{ time: slotTime, status: "ADDED" }] },
       ];
 
-        setAvailability(newAvailability);
-      }
-
-      setSlotTime(''); // set the ('') value to the time field of dialog
-      setIsAddSlotsDialogOpen(false);
+      setAvailability(newAvailability);
     }
-  };
 
-  // console.log("selectedDate", selectedDate)
+    setSlotTime(''); // set the ('') value to the time field of dialog
+    setIsAddSlotsDialogOpen(false);
+  }
+};
 
-  // Function to merge availability by date and remove duplicates
-  const mergeAvailability = (availabilityArray: any[]) => {
-    const mergedAvailability: { [key: string]: any } = {}; // creating empty object
+// console.log("selectedDate", selectedDate)
 
-    // looping through each array of availability
-    availabilityArray.forEach((entry) => {
-      const { date, slots } = entry; // collection date and slots array from the current array of availability
+// Function to merge availability by date and remove duplicates
+const mergeAvailability = (availabilityArray: any[]) => {
+  const mergedAvailability: { [key: string]: any } = {}; // creating empty object
+
+  // looping through each array of availability
+  availabilityArray.forEach((entry) => {
+    const { date, slots } = entry; // collection date and slots array from the current array of availability
 
     // puting the the value of time and isBooked which is coming from the props
     const updatedSlots = slots.map((slot) => ({
@@ -185,26 +178,26 @@ export default function ProviderDashboard() {
       status: slot.status
     })).filter((slot) => slot.time);
 
-      // Only add the date if there are valid slots
-      if (updatedSlots.length > 0) {
-        if (mergedAvailability[date]) {
-          // If date already exists, merge the slots array
-          mergedAvailability[date].slots = [
-            ...mergedAvailability[date].slots, // existing slots array
-            ...updatedSlots // adding new array of slots
-          ];
-        } else {
-          // Otherwise, add the new date and its slots
-          mergedAvailability[date] = { date, slots: updatedSlots };
-        }
+    // Only add the date if there are valid slots
+    if (updatedSlots.length > 0) {
+      if (mergedAvailability[date]) {
+        // If date already exists, merge the slots array
+        mergedAvailability[date].slots = [
+          ...mergedAvailability[date].slots, // existing slots array
+          ...updatedSlots // adding new array of slots
+        ];
+      } else {
+        // Otherwise, add the new date and its slots
+        mergedAvailability[date] = { date, slots: updatedSlots };
       }
-    });
+    }
+  });
 
-    // Filter out dates with empty slots before setting state
-    const filteredAvailability = Object.values(mergedAvailability).filter((availability) => availability.slots.length > 0);
+  // Filter out dates with empty slots before setting state
+  const filteredAvailability = Object.values(mergedAvailability).filter((availability) => availability.slots.length > 0);
 
-    setMergedAvailability(filteredAvailability as Availability[]); //set to the mergedAvailability array
-  }
+  setMergedAvailability(filteredAvailability as Availability[]); //set to the mergedAvailability array
+}
 
  // Save Availability to Firestore
  const saveAvailabilityToFirestore = async () => {
@@ -214,50 +207,50 @@ export default function ProviderDashboard() {
     const q = query(collection(db, "availabilities"), where("providerID", "==", providerID));
     const querySnapshot = await getDocs(q);
 
-      if (!querySnapshot.empty) {
-        // If availability exists, update the document
-        const docRef = querySnapshot.docs[0].ref; // Get the first matching document (assuming only one per provider)
+    if (!querySnapshot.empty) {
+      // If availability exists, update the document
+      const docRef = querySnapshot.docs[0].ref; // Get the first matching document (assuming only one per provider)
 
-        setAvailability([]); // set the value of availability to '[]', because that is already exist in 'mergedAvailability' so for preventing duplication
+      setAvailability([]); // set the value of availability to '[]', because that is already exist in 'mergedAvailability' so for preventing duplication
 
-        await updateDoc(docRef, { availability: mergedAvailability });
-        toast.success("Schedule saved successfully");
+      await updateDoc(docRef, { availability: mergedAvailability });
+      toast.success("Schedule saved successfully");
+    } 
+  } catch (error) {
+    console.error("Error saving availability:", error);
+    toast.error("Failed to save schedule");
+  }
+};
+
+// console.log("availability", availability);
+// console.log("existingSlots", existingSlots);
+
+// for the removing slot functionality
+const handleRemoveSlot = (slotTime) => {
+  
+  // Make a copy of the availability data
+  const updatedAvailability = mergedAvailability.map((availability) => {
+    if (availability.date === formattedDate) {
+      // Filter out the slot with the specified time
+      const filteredSlots = availability.slots.filter((slot) => slot.time !== slotTime);
+      
+      // Only keep the date if there are remaining slots
+      if (filteredSlots.length > 0) {
+        return {
+          ...availability,
+          slots: filteredSlots,
+        };
+      } else {
+        // Return null for dates with no slots, to filter them out later
+        return null;
       }
-    } catch (error) {
-      console.error("Error saving availability:", error);
-      toast.error("Failed to save schedule");
     }
-  };
+    return availability;
+  }).filter((availability) => availability !== null); // Filter out null entries for prevent the case of date with empty slots
 
-  // console.log("availability", availability);
-  // console.log("existingSlots", existingSlots);
-
-  // for the removing slot functionality
-  const handleRemoveSlot = (slotTime) => {
-
-    // Make a copy of the availability data
-    const updatedAvailability = mergedAvailability.map((availability) => {
-      if (availability.date === formattedDate) {
-        // Filter out the slot with the specified time
-        const filteredSlots = availability.slots.filter((slot) => slot.time !== slotTime);
-
-        // Only keep the date if there are remaining slots
-        if (filteredSlots.length > 0) {
-          return {
-            ...availability,
-            slots: filteredSlots,
-          };
-        } else {
-          // Return null for dates with no slots, to filter them out later
-          return null;
-        }
-      }
-      return availability;
-    }).filter((availability) => availability !== null); // Filter out null entries for prevent the case of date with empty slots
-
-    // Update the state with the new availability after removing the slot
-    setMergedAvailability(updatedAvailability);
-  };
+  // Update the state with the new availability after removing the slot
+  setMergedAvailability(updatedAvailability);
+};
 
 // for set the colour difference of time div
 const localTimeColour = new Set(availability.find((a) => a.date === formattedDate)?.slots.map(slot => slot.time));
@@ -276,16 +269,16 @@ const getSlotStatusColor = (status: string) => {
   }
 };
 
-  // finding the slots for the selected date
-  const slotsForSelectedDate = mergedAvailability.find((a) => a.date === formattedDate)?.slots;
+// finding the slots for the selected date
+const slotsForSelectedDate = mergedAvailability.find((a) => a.date === formattedDate)?.slots;
 
-  // to manage the changing date by calender
-  const handleDateChange = (date: Date | null) => {
-    if (date) {
-      setSelectedDate(date);
-      setFormattedDate(formatDate(date));
-    }
-  };
+// to manage the changing date by calender
+const handleDateChange = (date: Date | null) => {
+  if (date) {
+    setSelectedDate(date);
+    setFormattedDate(formatDate(date));
+  }
+};
 
 // console.log("mergedAvailability", mergedAvailability)
 
