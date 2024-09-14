@@ -16,6 +16,7 @@ import CustomerBookedAppointments from "@/components/customer/CustomerBookedAppo
 import { Provider, Slot, Availability, Appointment, TypeUser } from "@/types";
 import { formatDate } from "@/helpers/formateDate";
 import { getUserIdFromToken } from "@/utils/utils";
+import { sendNotification } from "@/helpers/notification";
 
 const page: React.FC = () => {
 
@@ -263,6 +264,9 @@ const page: React.FC = () => {
                 // For actions other than CANCEL (e.g., CONFIRM), update the appointment status
                 const updatePromises = docs.map((doc) => updateDoc(doc.ref, { status: selectedAction })); // Create an array of update promises
                 await Promise.all(updatePromises); // Execute all update operations
+                
+                const message = `Your appointment on ${selectedAppointment.date} at ${selectedAppointment.time} has been ${selectedAction}`
+                await sendNotification(selectedAppointment.userID,message)
 
                 toast.success(`Appointment status updated to ${selectedAction.toLowerCase()} successfully`); // Notify user of successful update
             }

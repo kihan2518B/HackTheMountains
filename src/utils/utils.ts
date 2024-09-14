@@ -29,24 +29,3 @@ export function getUserIdFromToken(token: string): string {
   }
 }
 
-const handleAppointmentStatusUpdate = async (selectedAction,selectedAppointment,providerID) => {
-  if (!selectedAppointment || !selectedAction) return;
-  try {
-    const { date, time } = selectedAppointment;
-    const appointmentsQuery = query(
-      collection(db, "appointments"),
-      where("providerID", "==", providerID),
-      where("date", "==", date),
-      where("time", "==", time)
-    );
-
-    const snapshot = await getDocs(appointmentsQuery);
-    const docs = snapshot.docs;
-    const updatePromises = docs.map((doc) => updateDoc(doc.ref, { status: selectedAction }));
-    await Promise.all(updatePromises);
-
-  } catch (error) {
-    console.error("something gone wrong:", error);
-  }
-
-}

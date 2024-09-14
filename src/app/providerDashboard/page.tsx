@@ -12,6 +12,7 @@ import CalendarSection from "@/components/provider/CalendarSection";
 import ProviderProfile from "@/components/provider/ProviderProfile";
 import BookedAppointments from "@/components/provider/BookedAppointments";
 import { formatDate } from "@/helpers/formateDate";
+import { sendNotification } from "@/helpers/notification";
 
 export default function ProviderDashboard() {
 
@@ -457,6 +458,8 @@ export default function ProviderDashboard() {
 
         toast.success(`Appointment status updated to ${selectedAction.toLowerCase()} successfully`); // Notify user of successful update
       }
+      const message = `Your appointment on ${selectedAppointment.date} at ${selectedAppointment.time} has been ${selectedAction}`
+      await sendNotification(selectedAppointment.userID,message)
     } catch (error) {
       console.error("Error updating appointment status:", error); // Log any errors
       toast.error("Something went wrong while updating the appointment."); // Notify user of an error

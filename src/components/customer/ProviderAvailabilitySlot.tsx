@@ -55,7 +55,7 @@ const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
     }
   };
 
-  console.log("selectedSlot", selectedSlot)
+  // console.log("selectedSlot", selectedSlot)
 
   return (
     <div className="w-full">
