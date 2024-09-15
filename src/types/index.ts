@@ -46,6 +46,7 @@ interface Appointment {
     time: string;
     status: string;
     paymentIntentId: string;
+    isServiceCompleted: boolean;
 }
 
 export type { Provider, Availability, Slot, Notification, TypeUser, Appointment }

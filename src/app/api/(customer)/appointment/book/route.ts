@@ -85,6 +85,7 @@ export const POST = async (req: Request) => {
                 time: slot,
                 status: "PENDING",
                 paymentIntentId,
+                isServiceCompleted: false,
             };
             console.log("newAppointment:", newAppointment);
 

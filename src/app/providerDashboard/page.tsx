@@ -5,13 +5,14 @@ import { getUserIdFromToken } from "@/utils/utils";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import "react-datepicker/dist/react-datepicker.css"; // Import the datepicker's CSS
-import { collection, query, where, getDocs, updateDoc, onSnapshot, } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, onSnapshot, deleteDoc, } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import SlotContainer from "@/components/provider/SlotContainer";
 import CalendarSection from "@/components/provider/CalendarSection";
 import ProviderProfile from "@/components/provider/ProviderProfile";
 import BookedAppointments from "@/components/provider/BookedAppointments";
 import { formatDate } from "@/helpers/formateDate";
+import { sendNotification } from "@/helpers/notification";
 
 export default function ProviderDashboard() {
 
@@ -401,14 +402,12 @@ export default function ProviderDashboard() {
   };
 
   const handleAppointmentStatusUpdate = async () => {
-    if (!selectedAppointment || !selectedAction) return;
+    if (!selectedAppointment || !selectedAction) return; // Exit if no appointment or action is selected
+
     try {
-      const { date, time, paymentIntentId } = selectedAppointment;
-      const appointmentDateTime = new Date(`${date}T${time}:00`);
-      const cancellationCutoff = new Date(appointmentDateTime.getTime() - 20 * 60 * 1000); // 20 minutes before the appointment
-      const currentTime = new Date();
-
-
+      const { date, time, providerID, paymentIntentId, } = selectedAppointment;
+    
+      // Query to find the appointment document by providerID, date, and time
       const appointmentsQuery = query(
         collection(db, "appointments"),
         where("providerID", "==", providerID),
@@ -416,33 +415,115 @@ export default function ProviderDashboard() {
         where("time", "==", time)
       );
 
-      const snapshot = await getDocs(appointmentsQuery);
-      const docs = snapshot.docs;
-      const updatePromises = docs.map((doc) => updateDoc(doc.ref, { status: selectedAction }));
-      await Promise.all(updatePromises);
+      const snapshot = await getDocs(appointmentsQuery); // Fetch appointment documents that match the query
+      const docs = snapshot.docs; // Get the document snapshots
 
-      if (selectedAction === 'CONFIRM') {
-        // Schedule the payment transfer to the provider's wallet
-        await schedulePaymentTransfer(paymentIntentId, appointmentDateTime);
-        toast.success(`Appointment confirmed and payment scheduled.`);
-      } else if (selectedAction === 'CANCEL') {
-        if (currentTime < cancellationCutoff) {
-          // Cancelled before cutoff time, refund user
-          await refundUser(paymentIntentId);
-          toast.success(`Appointment cancelled. User has been refunded.`);
-        } else {
-          // Cancelled after cutoff time, refund user and deduct penalty
-          await refundUser(paymentIntentId, true); // Refund user and apply penalty
-          toast.success(`Appointment cancelled. User has been refunded and provider penalized.`);
-        }
+      if (selectedAction === "CANCEL") {
+        // // If the action is CANCEL, delete the appointment document(s)
+        // const deletePromises = docs.map((doc) => deleteDoc(doc.ref)); // Create an array of delete promises
+        // await Promise.all(deletePromises); // Execute all delete operations
+
+        // // Now, find the availability document for the same providerID
+        // const availabilitiesQuery = query(
+        //   collection(db, "availabilities"),
+        //   where("providerID", "==", providerID)
+        // );
+
+        // const availabilitySnapshot = await getDocs(availabilitiesQuery); // Fetch availability documents for the provider
+        // const availabilityDocs = availabilitySnapshot.docs; // Get the document snapshots
+
+        // if (availabilityDocs.length > 0) {
+        //   const availabilityDoc = availabilityDocs[0]; // Assume there's only one availability document per provider
+        //   const availabilityData = availabilityDoc.data(); // Get the data from the availability document
+
+        //   // Update the availability data with the new slot status
+        //   const updatedAvailability = availabilityData.availability.map((avail: any) => {
+        //     if (avail.date === date) { // Find the availability for the selected date
+        //       const updatedSlots = avail.slots.map((slot: any) =>
+        //         slot.time === time ? { ...slot, status: "ADDED" } : slot // Update the slot status to "ADDED"
+        //       );
+        //       return { ...avail, slots: updatedSlots }; // Return updated availability object
+        //     }
+        //     return avail; // Return the unmodified availability object
+        //   });
+
+        //   // Update the availability document in Firestore with the modified data
+        //   await updateDoc(availabilityDoc.ref, { availability: updatedAvailability });
+        // }
+
+        // toast.success("Appointment canceled and slot updated successfully."); // Notify user of successful cancellation
+
+
+        const response = await fetch('/api/payment/refundPayment', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+              providerID,
+              paymentIntentId,
+              date,
+              time,
+              selectedAction,
+          }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+          // If cancellation is successful, handle the availability and update slot status
+          const availabilitiesQuery = query(
+              collection(db, "availabilities"),
+              where("providerID", "==", providerID)
+          );
+
+          const availabilitySnapshot = await getDocs(availabilitiesQuery);
+          const availabilityDocs = availabilitySnapshot.docs;
+
+          if (availabilityDocs.length > 0) {
+              const availabilityDoc = availabilityDocs[0];
+              const availabilityData = availabilityDoc.data();
+
+              // Update the availability data with the new slot status
+              const updatedAvailability = availabilityData.availability.map((avail: any) => {
+                  if (avail.date === date) {
+                      const updatedSlots = avail.slots.map((slot: any) =>
+                          slot.time === time ? { ...slot, status: "ADDED" } : slot
+                      );
+                      return { ...avail, slots: updatedSlots };
+                  }
+                  return avail;
+              });
+
+              // Update the availability document in Firestore with the modified data
+              await updateDoc(availabilityDoc.ref, { availability: updatedAvailability });
+
+              // Delete the appointment document(s)
+              const deletePromises = snapshot.docs.map((doc) => deleteDoc(doc.ref));
+              await Promise.all(deletePromises);
+
+              toast.success("Appointment canceled, payment refunded, and slot updated successfully.");
+          }
+      } else {
+          toast.error(result.message || "Error canceling the appointment.");
       }
+      } else {
+        // For actions other than CANCEL (e.g., CONFIRM), update the appointment status
+        const updatePromises = docs.map((doc) => updateDoc(doc.ref, { status: selectedAction })); // Create an array of update promises
+        await Promise.all(updatePromises); // Execute all update operations
+
+        toast.success(`Appointment status updated to ${selectedAction.toLowerCase()} successfully`); // Notify user of successful update
+      }
+      const message = `Your appointment on ${selectedAppointment.date} at ${selectedAppointment.time} has been ${selectedAction}`
+      await sendNotification(selectedAppointment.userID,message)
     } catch (error) {
-      console.error("somthing gone wrong:", error);
-      toast.error("somthing gone wrong");
+      console.error("Error updating appointment status:", error); // Log any errors
+      toast.error("Something went wrong while updating the appointment."); // Notify user of an error
     }
 
-    setShowStatusConfirmDialog(false);
-    setSelectedAppointment(null);
+    setShowStatusConfirmDialog(false); // Close the status confirmation dialog
+    setSelectedAppointment(null); // Clear the selected appointment
+    setSelectedAction(""); // Reset the selected action
   };
 
   // Helper function to schedule payment transfer

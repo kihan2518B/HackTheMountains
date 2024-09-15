@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { Tab } from '@headlessui/react';
 import { Appointment, TypeUser } from '@/types';
 import { CircularProgress, Button, Dialog, DialogContent } from '@mui/material';
-import { toast } from 'react-toastify';
 
-interface BookedAppointmentsProps {
+interface CustomerBookedAppointmentsProps {
   providerID: string;
   appointments: Appointment[];
   loading: boolean;
@@ -18,7 +17,7 @@ interface BookedAppointmentsProps {
   getSlotStatusColor: (status: string) => string;
 }
 
-const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
+const CustomerBookedAppointments: React.FC<CustomerBookedAppointmentsProps> = ({
   providerID,
   appointments,
   loading,
@@ -37,37 +36,6 @@ const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
   const upcomingAppointments = appointments.filter((appointment) => appointment.date > today);
   const todayAppointments = appointments.filter((appointment) => appointment.date === today);
   const pastAppointments = appointments.filter((appointment) => appointment.date < today);
-
-  // Function to check if "Service Completed" button should be shown.
-  const shouldShowServiceCompletedButton = (appointment: Appointment) => {
-    const appointmentTime = new Date(`${appointment.date}T${appointment.time}`);
-    const currentTime = new Date();
-    const timeDiffMinutes = (currentTime.getTime() - appointmentTime.getTime()) / (1000 * 60);
-    return timeDiffMinutes >= 1;
-  };
-
-
-  const handleServiceCompleted = async (appointment: Appointment) => {
-    try {
-      // Make the API call to update the balance in the provider's collection.
-       const respose = await fetch('/api/provider/updateBalance', {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ providerID, increment: 50, appointmentID: appointment.id })        
-      });
-
-      // After updating, mark the service as completed in the state.
-      const result = await respose.json();
-      
-      if(respose.ok){
-        toast.success(result.message);
-      } else {
-        toast.error(result.message)
-      }
-    } catch (error) {
-      console.error('Error updating balance:', error);
-    }
-  };
 
   const renderAppointments = (appointmentList: Appointment[]) => (
     <>
@@ -106,14 +74,8 @@ const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
                 )}
               </div>
 
-              {!isPast && (
+              {!isPast && appointment.status === "CONFIRM" && (
                 <div className="flex justify-between mt-4 gap-2">
-                  <button
-                    className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
-                    onClick={() => handleAppointmentClick(appointment, 'CONFIRM')}
-                  >
-                    Confirm
-                  </button>
                   <button
                     className="bg-[#FF5733] hover:bg-[#D94323] text-white font-bold py-2 px-4 rounded"
                     onClick={() => handleAppointmentClick(appointment, 'CANCEL')}
@@ -123,17 +85,7 @@ const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
                 </div>
               )}
 
-              {/* Display "Service Completed" button only if 10 minutes have passed */}
-              {appointment.status === 'CONFIRM' && shouldShowServiceCompletedButton(appointment) && !appointment.isServiceCompleted && (
-                <div className="mt-4">
-                  <button
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-                    onClick={() => handleServiceCompleted(appointment)}
-                  >
-                    Service Completed
-                  </button>
-                </div>
-              )}
+              {/* No buttons for CANCEL, PENDING status */}
             </div>
           );
         })
@@ -142,6 +94,7 @@ const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
       )}
     </>
   );
+
 
   return (
     <div className="appointments-container flex flex-col lg:flex-wrap p-4">
@@ -206,7 +159,7 @@ const BookedAppointments: React.FC<BookedAppointmentsProps> = ({
   );
 };
 
-export default BookedAppointments;
+export default CustomerBookedAppointments;
 
 interface ConfirmDialogProps {
   open: boolean;
