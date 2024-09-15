@@ -15,6 +15,8 @@ interface Provider {
     category: string;
     speciality: string;
     location: string;
+    address: string;
+    balance: number;
 }
 
 interface TypeUser {
@@ -33,6 +35,7 @@ interface Slot {
 interface Availability {
     date: string; 
     slots: Slot[]
+    balance: number;
 }
 
 interface Appointment {
@@ -42,6 +45,8 @@ interface Appointment {
     date: string;
     time: string;
     status: string;
+    paymentIntentId: string;
+    isServiceCompleted: boolean;
 }
 
 export type { Provider, Availability, Slot, Notification, TypeUser, Appointment }

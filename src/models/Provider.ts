@@ -8,6 +8,8 @@ const ProviderSchema = new mongoose.Schema({
   category: { type: String, required: true },
   speciality: { type: String, required: true },
   location: {type: String, required: true},
+  address: {type: String, required: true},
+  balance: {type: Number, required: true},
   availabilityID: { type: String },
 }, { timestamps: true });
 

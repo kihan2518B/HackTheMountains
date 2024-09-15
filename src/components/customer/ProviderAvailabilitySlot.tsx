@@ -1,14 +1,27 @@
-import React, { useState } from 'react';
-import { Slot } from '@/types';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import React, { useState } from "react";
+import { Slot } from "@/types";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+} from "@mui/material";
+import { CardElement } from "@stripe/react-stripe-js";
 
 interface ProviderAvailabilitySlotProps {
   selectedDate: Date;
   slotsForSelectedDate: Slot[] | null;
   handleSlotClick: (slot: Slot) => void;
   selectedSlot: Slot | null; // Added prop to highlight selected slot
-  handleBookAppointment: () => void;
+  handleConfirmAppointment: () => void;
   Loading: boolean;
+  paymentError: string | null;
+  paymentLoading: boolean;
+  stripe: any;
+  openConfirmDialog: () => void;
+  closeConfirmDialog: () => void;
+  isConfirmDialogOpen: boolean;
 }
 
 const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
@@ -17,27 +30,30 @@ const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
   handleSlotClick,
   selectedSlot,
   Loading,
-  handleBookAppointment
+  handleConfirmAppointment,
+  paymentError,
+  paymentLoading,
+  stripe,
+  openConfirmDialog,
+  closeConfirmDialog,
+  isConfirmDialogOpen,
 }) => {
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-
-  const openConfirmDialog = () => setIsConfirmDialogOpen(true);
-  const closeConfirmDialog = () => setIsConfirmDialogOpen(false);
-
-  const handleConfirmAppointment = () => {
-    handleBookAppointment();
-    closeConfirmDialog();
-  };
+  // const handleConfirmAppointment = () => {
+  //   handleBookAppointment();
+  //   closeConfirmDialog();
+  // };
 
   // Function to convert time string into a comparable format (e.g., "14:00" to 14*60 + 0 = 840)
   const convertTimeToMinutes = (time: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
+    const [hours, minutes] = time.split(":").map(Number);
     return hours * 60 + minutes;
   };
 
   // Sort the slots based on the time in ascending order
   const sortedSlots = slotsForSelectedDate
-    ? slotsForSelectedDate.sort((a, b) => convertTimeToMinutes(a.time) - convertTimeToMinutes(b.time))
+    ? slotsForSelectedDate.sort(
+        (a, b) => convertTimeToMinutes(a.time) - convertTimeToMinutes(b.time)
+      )
     : [];
 
   const getSlotStatusColor = (status: string) => {
@@ -68,17 +84,24 @@ const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
         </h4>
         {/* Display Slots for Selected Date */}
         <div className="mt-2">
-          <h5 className="text-lg font-medium mb-2">Select your preferred time:</h5>
+          <h5 className="text-lg font-medium mb-2">
+            Select your preferred time:
+          </h5>
           {sortedSlots && sortedSlots.length > 0 ? (
             <div className="flex flex-wrap gap-2 cursor-pointer overflow-y-auto">
               {sortedSlots.map((slot, index) => (
                 <div
                   key={index}
                   onClick={() => handleSlotClick(slot)}
-                  className={`flex items-center gap-1 rounded-md w-fit p-2  ${slot.status === "CONFIRM" ? 'cursor-not-allowed' : 'cursor-pointer'} ${slot === selectedSlot
-                    ? 'border-2 border-blue-500 bg-blue-300'
-                    : getSlotStatusColor(slot.status)
-                    }`}
+                  className={`flex items-center gap-1 rounded-md w-fit p-2  ${
+                    slot.status === "CONFIRM"
+                      ? "cursor-not-allowed"
+                      : "cursor-pointer"
+                  } ${
+                    slot === selectedSlot
+                      ? "border-2 border-blue-500 bg-blue-300"
+                      : getSlotStatusColor(slot.status)
+                  }`}
                 >
                   <p>{slot.time}</p>
                 </div>
@@ -110,17 +133,32 @@ const ProviderAvailabilitySlot: React.FC<ProviderAvailabilitySlotProps> = ({
           <DialogTitle>Confirm Appointment</DialogTitle>
           <DialogContent>
             <p>
-              Do you want to book an appointment on{' '}
-              <strong>{new Date(selectedDate || '').toLocaleDateString()}</strong> at{' '}
-              <strong>{selectedSlot ? selectedSlot.time : ''}</strong>?
+              Do you want to book an appointment on{" "}
+              <strong>
+                {new Date(selectedDate || "").toLocaleDateString()}
+              </strong>{" "}
+              at <strong>{selectedSlot ? selectedSlot.time : ""}</strong>?
             </p>
+            <div className="m-2 border border-gray-300">
+              <CardElement />
+            </div>
+            {paymentError && <p style={{ color: "red" }}>{paymentError}</p>}
           </DialogContent>
           <DialogActions>
-            <Button onClick={closeConfirmDialog} variant="contained" color="error">
+            <Button
+              onClick={closeConfirmDialog}
+              variant="contained"
+              color="error"
+            >
               Cancel
             </Button>
-            <Button onClick={handleConfirmAppointment} variant="contained" color="primary">
-              Confirm
+            <Button
+              onClick={handleConfirmAppointment}
+              variant="contained"
+              color="primary"
+              disabled={!stripe || paymentLoading}
+            >
+              {paymentLoading ? "Processing..." : "Pay & Confirm"}
             </Button>
           </DialogActions>
         </Dialog>

@@ -11,10 +11,12 @@ import { db } from "@/config/firebase";
 import ProviderProfile from "@/components/provider/ProviderProfile";
 import CalendarSection from "@/components/provider/CalendarSection";
 import ProviderAvailabilitySlot from "@/components/customer/ProviderAvailabilitySlot";
+import { CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import CustomerBookedAppointments from "@/components/customer/CustomerBookedAppointments";
 
 import { Provider, Slot, Availability, Appointment, TypeUser } from "@/types";
 import { formatDate } from "@/helpers/formateDate";
+import { loadStripe } from "@stripe/stripe-js";
 import { getUserIdFromToken } from "@/utils/utils";
 import { sendNotification } from "@/helpers/notification";
 
@@ -32,6 +34,17 @@ const page: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [availabilities, setAvailabilities] = useState<Availability[]>([]);
     const [slotsForSelectedDate, setSlotsForSelectedDate] = useState<Slot[] | null>(null);
+
+    const stripe = useStripe();
+    const elements = useElements();
+    const [paymentLoading, setPaymentLoading] = useState<boolean>(false);
+    const [paymentError, setPaymentError] = useState<string | null>(null);
+
+    const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+
+    const openConfirmDialog = () => setIsConfirmDialogOpen(true);
+    const closeConfirmDialog = () => setIsConfirmDialogOpen(false);
+    
 
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [appointmentsLoading, setAppointmentsLoading] = useState<boolean>(false);
@@ -103,8 +116,58 @@ const page: React.FC = () => {
         }
     };
 
-    const handleBookAppointment = async () => {
-        if (selectedSlot && formattedDate && providerID) {
+    const handleConfirmAppointment = async () => {
+        if (!stripe || !elements) { return; }
+      
+        setPaymentLoading(true);
+        const cardElement = elements.getElement(CardElement);
+
+        toast.info("starting payment")
+        try {
+            const res = await fetch("/api/payment/intent", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                amount: 5000, // Amount in paise (e.g., 5000 paise = 50 INR)
+                providerID,
+                slot: selectedSlot?.time,
+                date: formattedDate,
+              }),
+            });
+      
+            const { clientSecret, paymentIntentId } = await res.json();
+            console.log("clientSecret", clientSecret);
+            console.log("paymentIntentId", paymentIntentId);
+      
+            // Confirm the payment
+            const result = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: {
+                card: cardElement!,
+                },
+            });
+
+            console.log("result", result)
+
+            if (result.error) {
+                setPaymentError(result.error.message || 'Payment failed');
+                toast.error(result.error.message || 'Payment failed');
+              } else if (result.paymentIntent?.status === 'succeeded') {
+                toast.success("Payment successful");
+                await handleBookAppointment(paymentIntentId);
+              } else {
+                setPaymentError('Payment was not successful');
+                toast.error('Payment was not successful');
+              }
+          } catch (error) {
+            setPaymentError("Payment failed. Please try again.");
+          } finally {
+            setPaymentLoading(false);
+          }
+        };
+
+    const handleBookAppointment = async (paymentIntentId: string) => {
+        if (selectedSlot && formattedDate && providerID && paymentIntentId) {
+            toast.info("starting bokking confirmation")
             try {
                 setLoading(true);
                 setSelectedSlot(null)
@@ -118,6 +181,7 @@ const page: React.FC = () => {
                         providerID,
                         date: formattedDate,
                         slot: selectedSlot.time,
+                        paymentIntentId,
                     }),
                 });
 
@@ -125,6 +189,7 @@ const page: React.FC = () => {
                     const data = await response.json();
                     console.log("Appointment booked successfully:", data);
                     setLoading(false);
+                    closeConfirmDialog()
                     toast.success("Appointment booked successfully");
                 } else {
                     const errorData = await response.json();
@@ -210,11 +275,16 @@ const page: React.FC = () => {
     };
 
     const handleAppointmentStatusUpdate = async () => {
-        if (!selectedAppointment || !selectedAction) return; // Exit if no appointment or action is selected
+        if (!selectedAppointment || !selectedAction ) return; // Exit if no appointment or action is selected
 
         try {
-            const { date, time } = selectedAppointment; // Extract date and time from the selected appointment
+            const { date, time, paymentIntentId, providerID } = selectedAppointment; // Extract date and time from the selected appointment
+            console.log("date, time", date, time)
+            // const appointmentTime = new Date(`${date}T${time}`);
+            // const currentTime = new Date();
 
+            // const timeDiffMinutes = (currentTime.getTime() - appointmentTime.getTime()) / (1000 * 60);
+            
             // Query to find the appointment document by providerID, date, and time
             const appointmentsQuery = query(
                 collection(db, "appointments"),
@@ -227,9 +297,6 @@ const page: React.FC = () => {
             const docs = snapshot.docs; // Get the document snapshots
 
             if (selectedAction === "CANCEL") {
-                // If the action is CANCEL, delete the appointment document(s)
-                const deletePromises = docs.map((doc) => deleteDoc(doc.ref)); // Create an array of delete promises
-                await Promise.all(deletePromises); // Execute all delete operations
 
                 // Now, find the availability document for the same providerID
                 const availabilitiesQuery = query(
@@ -240,6 +307,7 @@ const page: React.FC = () => {
                 const availabilitySnapshot = await getDocs(availabilitiesQuery); // Fetch availability documents for the provider
                 const availabilityDocs = availabilitySnapshot.docs; // Get the document snapshots
 
+                // console.log("availabilityDocs", availabilityDocs)
                 if (availabilityDocs.length > 0) {
                     const availabilityDoc = availabilityDocs[0]; // Assume there's only one availability document per provider
                     const availabilityData = availabilityDoc.data(); // Get the data from the availability document
@@ -254,22 +322,27 @@ const page: React.FC = () => {
                         }
                         return avail; // Return the unmodified availability object
                     });
+                    // console.log("updatedAvailability", updatedAvailability)
 
                     // Update the availability document in Firestore with the modified data
                     await updateDoc(availabilityDoc.ref, { availability: updatedAvailability });
+
+                    // If the action is CANCEL, delete the appointment document(s)
+                    const deletePromises = docs.map((doc) => deleteDoc(doc.ref)); // Create an array of delete promises
+                    await Promise.all(deletePromises); // Execute all delete operations
                 }
 
-                toast.success("Appointment canceled and slot updated successfully."); // Notify user of successful cancellation
+                toast.success("Appointment canceled and slot updated successfully."); // Notify user of successful cancellation                
             } else {
                 // For actions other than CANCEL (e.g., CONFIRM), update the appointment status
                 const updatePromises = docs.map((doc) => updateDoc(doc.ref, { status: selectedAction })); // Create an array of update promises
                 await Promise.all(updatePromises); // Execute all update operations
-                
-                const message = `Your appointment on ${selectedAppointment.date} at ${selectedAppointment.time} has been ${selectedAction}`
-                await sendNotification(selectedAppointment.userID,message)
 
                 toast.success(`Appointment status updated to ${selectedAction.toLowerCase()} successfully`); // Notify user of successful update
             }
+            const message = `Your appointment on ${selectedAppointment.date} at ${selectedAppointment.time} has been ${selectedAction}`
+            await sendNotification(selectedAppointment.userID, message)
+            await sendNotification(selectedAppointment.providerID, message)
         } catch (error) {
             console.error("Error updating appointment status:", error); // Log any errors
             toast.error("Something went wrong while updating the appointment."); // Notify user of an error
@@ -331,7 +404,14 @@ const page: React.FC = () => {
                                 selectedSlot={selectedSlot}
                                 handleSlotClick={handleSlotClick}
                                 handleBookAppointment={handleBookAppointment}
+                                handleConfirmAppointment = {handleConfirmAppointment}
                                 selectedDate={selectedDate}
+                                paymentError={paymentError}
+                                paymentLoading={paymentLoading}
+                                openConfirmDialog={openConfirmDialog}
+                                closeConfirmDialog={closeConfirmDialog}
+                                isConfirmDialogOpen={isConfirmDialogOpen}
+                                stripe={stripe}
                                 slotsForSelectedDate={slotsForSelectedDate}
                             />
                         </div>

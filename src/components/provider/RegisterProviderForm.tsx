@@ -28,7 +28,8 @@ const RegisterProviderForm: React.FC = () => {
             password: formData.get("password"),
             category: formData.get("category"), 
             speciality: formData.get("speciality"), 
-            location: formData.get("location")
+            location: formData.get("location"),
+            address: formData.get("address")
         }
 
         try {
@@ -154,6 +155,17 @@ const RegisterProviderForm: React.FC = () => {
                     name="location"
                     className="bg-BGTwo shadow-ColorOne inline-block rounded-lg shadow-md px-6 py-3 text-base w-full placeholder-ColorThree/50"
                     placeholder="Location"
+                />
+            </div>
+            <div className="">
+              <label htmlFor="address" className="block text-sm font-medium text-gray-700">Address</label>
+                <input
+                    required
+                    type="text"
+                    id="address"
+                    name="address"
+                    className="bg-BGTwo shadow-ColorOne inline-block rounded-lg shadow-md px-6 py-3 text-base w-full placeholder-ColorThree/50"
+                    placeholder="Address"
                 />
             </div>
             <div className="">

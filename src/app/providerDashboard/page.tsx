@@ -44,6 +44,7 @@ export default function ProviderDashboard() {
         const providerID = getUserIdFromToken(userToken);
         setProviderID(providerID);
         console.log("availability", availability);
+        console.log("providerID", providerID);
 
       }
     }
@@ -317,7 +318,7 @@ export default function ProviderDashboard() {
 
   // Function to update availability status
   const updateAvailabilityStatus = async (appointment: Appointment) => {
-    const { date, time, providerID, status } = appointment;
+    const { date, time, providerID, status, paymentIntentId } = appointment;
     console.log("updateAvailabilityStatus is called")
     try {
       const availabilityQuery = query(collection(db, "availabilities"), where("providerID", "==", providerID));
@@ -404,8 +405,8 @@ export default function ProviderDashboard() {
     if (!selectedAppointment || !selectedAction) return; // Exit if no appointment or action is selected
 
     try {
-      const { date, time } = selectedAppointment; // Extract date and time from the selected appointment
-
+      const { date, time, providerID, paymentIntentId, } = selectedAppointment;
+    
       // Query to find the appointment document by providerID, date, and time
       const appointmentsQuery = query(
         collection(db, "appointments"),
@@ -418,39 +419,94 @@ export default function ProviderDashboard() {
       const docs = snapshot.docs; // Get the document snapshots
 
       if (selectedAction === "CANCEL") {
-        // If the action is CANCEL, delete the appointment document(s)
-        const deletePromises = docs.map((doc) => deleteDoc(doc.ref)); // Create an array of delete promises
-        await Promise.all(deletePromises); // Execute all delete operations
+        // // If the action is CANCEL, delete the appointment document(s)
+        // const deletePromises = docs.map((doc) => deleteDoc(doc.ref)); // Create an array of delete promises
+        // await Promise.all(deletePromises); // Execute all delete operations
 
-        // Now, find the availability document for the same providerID
-        const availabilitiesQuery = query(
-          collection(db, "availabilities"),
-          where("providerID", "==", providerID)
-        );
+        // // Now, find the availability document for the same providerID
+        // const availabilitiesQuery = query(
+        //   collection(db, "availabilities"),
+        //   where("providerID", "==", providerID)
+        // );
 
-        const availabilitySnapshot = await getDocs(availabilitiesQuery); // Fetch availability documents for the provider
-        const availabilityDocs = availabilitySnapshot.docs; // Get the document snapshots
+        // const availabilitySnapshot = await getDocs(availabilitiesQuery); // Fetch availability documents for the provider
+        // const availabilityDocs = availabilitySnapshot.docs; // Get the document snapshots
 
-        if (availabilityDocs.length > 0) {
-          const availabilityDoc = availabilityDocs[0]; // Assume there's only one availability document per provider
-          const availabilityData = availabilityDoc.data(); // Get the data from the availability document
+        // if (availabilityDocs.length > 0) {
+        //   const availabilityDoc = availabilityDocs[0]; // Assume there's only one availability document per provider
+        //   const availabilityData = availabilityDoc.data(); // Get the data from the availability document
 
-          // Update the availability data with the new slot status
-          const updatedAvailability = availabilityData.availability.map((avail: any) => {
-            if (avail.date === date) { // Find the availability for the selected date
-              const updatedSlots = avail.slots.map((slot: any) =>
-                slot.time === time ? { ...slot, status: "ADDED" } : slot // Update the slot status to "ADDED"
-              );
-              return { ...avail, slots: updatedSlots }; // Return updated availability object
-            }
-            return avail; // Return the unmodified availability object
-          });
+        //   // Update the availability data with the new slot status
+        //   const updatedAvailability = availabilityData.availability.map((avail: any) => {
+        //     if (avail.date === date) { // Find the availability for the selected date
+        //       const updatedSlots = avail.slots.map((slot: any) =>
+        //         slot.time === time ? { ...slot, status: "ADDED" } : slot // Update the slot status to "ADDED"
+        //       );
+        //       return { ...avail, slots: updatedSlots }; // Return updated availability object
+        //     }
+        //     return avail; // Return the unmodified availability object
+        //   });
 
-          // Update the availability document in Firestore with the modified data
-          await updateDoc(availabilityDoc.ref, { availability: updatedAvailability });
-        }
+        //   // Update the availability document in Firestore with the modified data
+        //   await updateDoc(availabilityDoc.ref, { availability: updatedAvailability });
+        // }
 
-        toast.success("Appointment canceled and slot updated successfully."); // Notify user of successful cancellation
+        // toast.success("Appointment canceled and slot updated successfully."); // Notify user of successful cancellation
+
+
+        const response = await fetch('/api/payment/refundPayment', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+              providerID,
+              paymentIntentId,
+              date,
+              time,
+              selectedAction,
+          }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+          // If cancellation is successful, handle the availability and update slot status
+          const availabilitiesQuery = query(
+              collection(db, "availabilities"),
+              where("providerID", "==", providerID)
+          );
+
+          const availabilitySnapshot = await getDocs(availabilitiesQuery);
+          const availabilityDocs = availabilitySnapshot.docs;
+
+          if (availabilityDocs.length > 0) {
+              const availabilityDoc = availabilityDocs[0];
+              const availabilityData = availabilityDoc.data();
+
+              // Update the availability data with the new slot status
+              const updatedAvailability = availabilityData.availability.map((avail: any) => {
+                  if (avail.date === date) {
+                      const updatedSlots = avail.slots.map((slot: any) =>
+                          slot.time === time ? { ...slot, status: "ADDED" } : slot
+                      );
+                      return { ...avail, slots: updatedSlots };
+                  }
+                  return avail;
+              });
+
+              // Update the availability document in Firestore with the modified data
+              await updateDoc(availabilityDoc.ref, { availability: updatedAvailability });
+
+              // Delete the appointment document(s)
+              const deletePromises = snapshot.docs.map((doc) => deleteDoc(doc.ref));
+              await Promise.all(deletePromises);
+
+              toast.success("Appointment canceled, payment refunded, and slot updated successfully.");
+          }
+      } else {
+          toast.error(result.message || "Error canceling the appointment.");
+      }
       } else {
         // For actions other than CANCEL (e.g., CONFIRM), update the appointment status
         const updatePromises = docs.map((doc) => updateDoc(doc.ref, { status: selectedAction })); // Create an array of update promises
@@ -468,6 +524,42 @@ export default function ProviderDashboard() {
     setShowStatusConfirmDialog(false); // Close the status confirmation dialog
     setSelectedAppointment(null); // Clear the selected appointment
     setSelectedAction(""); // Reset the selected action
+  };
+
+  // Helper function to schedule payment transfer
+  const schedulePaymentTransfer = async (paymentIntentId: string, appointmentDateTime: Date) => {
+    // Logic to schedule the transfer. This might involve setting up a cron job or using a cloud function to handle timed actions.
+    // You will likely need a server-side function or cron job to perform the actual transfer at the scheduled time.
+
+    // Example: Sending a request to a server-side endpoint to handle scheduling
+    await fetch("/api/payment/schedule-transfer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paymentIntentId,
+        appointmentDateTime,
+      }),
+    });
+  };
+
+  // Helper function to handle refunds
+  const refundUser = async (paymentIntentId: string, applyPenalty = false) => {
+    try {
+      const response = await fetch("/api/payment/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentIntentId,
+          applyPenalty,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to process refund.');
+      }
+    } catch (error) {
+      console.error("Error refunding user:", error);
+      throw new Error("Failed to refund user.");
+    }
   };
 
   const handleAppointmentStatusCancel = () => {
