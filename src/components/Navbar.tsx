@@ -21,8 +21,8 @@ import { useRouter } from 'next/navigation';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 
 import NotificationPanel from './NotificationPanel';
-import {Notification} from "@/types"
-import { getUserRoleFromToken,getUserIdFromToken } from '@/utils/utils';
+import { Notification } from "@/types"
+import { getUserRoleFromToken, getUserIdFromToken } from '@/utils/utils';
 import LogoutButton from './LogoutButton';
 
 import { db } from '@/config/firebase';
@@ -43,15 +43,6 @@ const settings = [
 
 const Navbar = () => {
     const router = useRouter();
-    // const [notifications, unreadCount] = [[{
-    //     id: "01",
-    //     message: "Nothing vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv",
-    //     isRead: false
-    // }, {
-    //     id: "02",
-    //     message: "Nothing vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv",
-    //     isRead: false
-    // },], 2];
 
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -79,31 +70,31 @@ const Navbar = () => {
         if (token) {
             const userID = getUserIdFromToken(token);
             if (!userID) return;
-    
+
             // Create a Firestore query to fetch notifications for the user in real-time
             const q = query(
                 collection(db, 'notifications'),
                 where('recipientId', '==', userID),  // Filter by the recipientId
                 orderBy('createdAt', 'desc')         // Order notifications by createdAt timestamp
             );
-    
+
             // Listen to Firestore snapshot changes for real-time updates
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 const fetchedNotifications = snapshot.docs.map((doc) => ({
                     id: doc.id,
                     ...doc.data(), // Add all fields from Firestore document
                 })) as Notification[];
-    
+
                 // Log to check if the fetched notifications are correct
                 // console.log("Fetched Notifications:", fetchedNotifications);
-    
+
                 // Update notifications state
                 setNotifications(fetchedNotifications);
-    
+
                 // Update unreadCount state by filtering unread notifications
                 setUnreadCount(fetchedNotifications.filter(n => !n.isRead).length);
             });
-    
+
             // Clean up the subscription when the component is unmounted
             return () => unsubscribe();
         }
@@ -115,7 +106,7 @@ const Navbar = () => {
         setNotifications(prev =>
             prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
         );
-        setUnreadCount(unreadCount-1);
+        setUnreadCount(unreadCount - 1);
     };
 
     const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -172,7 +163,7 @@ const Navbar = () => {
                             textDecoration: 'none',
                         }}
                     >
-                        ReserveME
+                        AppointME
                     </Typography>
 
                     <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
@@ -254,7 +245,7 @@ const Navbar = () => {
                             </IconButton>
                         </Tooltip>
                         <NotificationPanel
-                        markAsRead={markAsRead}
+                            markAsRead={markAsRead}
                             notifications={notifications}
                             unreadCount={unreadCount}
                             handleClose={handleCloseNotifications}
