@@ -15,7 +15,6 @@ export const POST = async (req: Request) => {
       amount, // Pass the appointment amount
       currency: 'inr',  // Indian Rupees
       payment_method_types: ['card'],
-      capture_method: 'manual', // Hold the payment
       description: `Booking appointment with provider ${providerID} on ${date} at ${slot}`,
     });
 

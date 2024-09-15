@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const {method} = req;
 
     if (method == "POST") {
-        const { name, email, password, category, speciality, location, imageUrl } = await req.json();
+        const { name, email, password, category, speciality,address, location, imageUrl } = await req.json();
 
         try {
     
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
           userID = user._id;
 
           // creating jwt token with user's details
-          const token = jwt.sign({ id: user._id, name: user.name, email: user.email, role: user.role, }, JWT_SECRET, {
+          const token = jwt.sign({ _id: user._id, name: user.name, email: user.email, role: user.role, }, JWT_SECRET, {
             expiresIn: JWT_EXPIRES_IN,
           });
           userToken = token;
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
             
           // creating jwt token with user's details
-          const token = jwt.sign({ id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, }, JWT_SECRET, {
+          const token = jwt.sign({ _id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, }, JWT_SECRET, {
             expiresIn: JWT_EXPIRES_IN,
           });
           userToken = token;
@@ -66,7 +66,9 @@ export async function POST(req: Request) {
           email, 
           category,
           location,
-          speciality, 
+          speciality,
+          address, 
+          balance: 0,
           userID: userID._id,
           availabilityID: '',
           imageUrl,

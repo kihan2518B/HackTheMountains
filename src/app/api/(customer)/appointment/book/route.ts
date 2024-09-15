@@ -43,15 +43,6 @@ export const POST = async (req: Request) => {
                 });
             }
 
-             // Capture the payment intent
-             const paymentIntent = await stripe.paymentIntents.capture(paymentIntentId);
-             console.log("Captured Payment Intent:", paymentIntent);
-
-            // Check payment intent status
-            if (paymentIntent.status !== 'succeeded') {
-                throw new Error("Payment not captured successfully.");
-            }
-
             // Convert the date string to a Date object for comparison
             const selectedDate = new Date(date);
             console.log("selectedDate", selectedDate)
@@ -102,7 +93,7 @@ export const POST = async (req: Request) => {
             //Sending notification when appointment is booked
             await sendNotification(providerID, `You have a new booking on ${date.split("T")[0]} at ${slot}, appointment is from ${decodedUser.name}`)
 
-            return new NextResponse(JSON.stringify({ message: "Appointment booked succesfully!!", appointment: newAppointment, provider, paymentIntent }), {
+            return new NextResponse(JSON.stringify({ message: "Appointment booked succesfully!!", appointment: newAppointment, provider }), {
                 status: 201,
                 headers: { 'Content-Type': 'application/json' }
             })

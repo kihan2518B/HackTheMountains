@@ -317,7 +317,7 @@ export default function ProviderDashboard() {
 
   // Function to update availability status
   const updateAvailabilityStatus = async (appointment: Appointment) => {
-    const { date, time, providerID, status } = appointment;
+    const { date, time, providerID, status, paymentIntentId } = appointment;
     console.log("updateAvailabilityStatus is called")
     try {
       const availabilityQuery = query(collection(db, "availabilities"), where("providerID", "==", providerID));
@@ -403,7 +403,12 @@ export default function ProviderDashboard() {
   const handleAppointmentStatusUpdate = async () => {
     if (!selectedAppointment || !selectedAction) return;
     try {
-      const { date, time } = selectedAppointment;
+      const { date, time, paymentIntentId } = selectedAppointment;
+      const appointmentDateTime = new Date(`${date}T${time}:00`);
+      const cancellationCutoff = new Date(appointmentDateTime.getTime() - 20 * 60 * 1000); // 20 minutes before the appointment
+      const currentTime = new Date();
+
+
       const appointmentsQuery = query(
         collection(db, "appointments"),
         where("providerID", "==", providerID),
@@ -416,7 +421,21 @@ export default function ProviderDashboard() {
       const updatePromises = docs.map((doc) => updateDoc(doc.ref, { status: selectedAction }));
       await Promise.all(updatePromises);
 
-      toast.success(`Appoitment status updated ${selectedAction.toLowerCase()} successfully`);
+      if (selectedAction === 'CONFIRM') {
+        // Schedule the payment transfer to the provider's wallet
+        await schedulePaymentTransfer(paymentIntentId, appointmentDateTime);
+        toast.success(`Appointment confirmed and payment scheduled.`);
+      } else if (selectedAction === 'CANCEL') {
+        if (currentTime < cancellationCutoff) {
+          // Cancelled before cutoff time, refund user
+          await refundUser(paymentIntentId);
+          toast.success(`Appointment cancelled. User has been refunded.`);
+        } else {
+          // Cancelled after cutoff time, refund user and deduct penalty
+          await refundUser(paymentIntentId, true); // Refund user and apply penalty
+          toast.success(`Appointment cancelled. User has been refunded and provider penalized.`);
+        }
+      }
     } catch (error) {
       console.error("somthing gone wrong:", error);
       toast.error("somthing gone wrong");
@@ -424,6 +443,42 @@ export default function ProviderDashboard() {
 
     setShowStatusConfirmDialog(false);
     setSelectedAppointment(null);
+  };
+
+  // Helper function to schedule payment transfer
+  const schedulePaymentTransfer = async (paymentIntentId: string, appointmentDateTime: Date) => {
+    // Logic to schedule the transfer. This might involve setting up a cron job or using a cloud function to handle timed actions.
+    // You will likely need a server-side function or cron job to perform the actual transfer at the scheduled time.
+
+    // Example: Sending a request to a server-side endpoint to handle scheduling
+    await fetch("/api/payment/schedule-transfer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paymentIntentId,
+        appointmentDateTime,
+      }),
+    });
+  };
+
+  // Helper function to handle refunds
+  const refundUser = async (paymentIntentId: string, applyPenalty = false) => {
+    try {
+      const response = await fetch("/api/payment/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentIntentId,
+          applyPenalty,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to process refund.');
+      }
+    } catch (error) {
+      console.error("Error refunding user:", error);
+      throw new Error("Failed to refund user.");
+    }
   };
 
   const handleAppointmentStatusCancel = () => {

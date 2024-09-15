@@ -135,48 +135,20 @@ const page: React.FC = () => {
 
             if (result.error) {
                 setPaymentError(result.error.message || 'Payment failed');
-                toast.error(result.error.message || 'Payment failed')
-                setPaymentLoading(false);
-                return;
-            }
-
-            console.log("result.paymentIntent?.status", result.paymentIntent?.status)
-
-            if (result.paymentIntent?.status === 'succeeded' || result.paymentIntent?.status === 'requires_capture') {
+                toast.error(result.error.message || 'Payment failed');
+              } else if (result.paymentIntent?.status === 'succeeded') {
                 toast.success("Payment successful");
-                handleBookAppointment(paymentIntentId);
-            } 
+                await handleBookAppointment(paymentIntentId);
+              } else {
+                setPaymentError('Payment was not successful');
+                toast.error('Payment was not successful');
+              }
           } catch (error) {
             setPaymentError("Payment failed. Please try again.");
+          } finally {
             setPaymentLoading(false);
           }
         };
-
-        const handleCapturePayment = async (paymentIntentId: string) => {
-            try {
-                const res = await fetch("/api/payment/capture", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ paymentIntentId }),
-                });
-        
-                const { paymentIntent } = await res.json();
-                console.log("Payment captured:", paymentIntent);
-        
-                if (paymentIntent.status === 'succeeded') {
-                    toast.success("Payment captured successfully");
-                    handleBookAppointment(paymentIntentId);
-                } else {
-                    toast.error("Failed to capture payment");
-                    setPaymentLoading(false);
-                }
-            } catch (error) {
-                console.error("Error capturing payment:", error);
-                setPaymentError("Failed to capture payment.");
-                setPaymentLoading(false);
-            }
-        };
-
 
     const handleBookAppointment = async (paymentIntentId: string) => {
         if (selectedSlot && formattedDate && providerID && paymentIntentId) {
