@@ -11,8 +11,8 @@ The event management module is powered by a machine learning model that gives sm
 ## Tech Stack
 
 - **Frontend**: Next.js
-- **Backend**: Python, Django
-- **Database**: MongoDB (with Djongo)
+- **Backend**: Next.js
+- **Database**: MongoDB
 - **Machine Learning**: Language Model-driven event planning module
 - **Testing**: Jest for frontend testing
 - **Styling**: Tailwind CSS
@@ -32,6 +32,7 @@ To run this project, you will need:
 
 - **Node.js**: Make sure Node.js is installed. [Download Node.js here](https://nodejs.org/).
 - **MongoDB**: A running instance of MongoDB (either locally or via MongoDB Atlas).
+-**Firebase**: A firebase account with configuration
 - **npm or yarn**: Package manager for dependencies.
 
 ### Installation
@@ -43,3 +44,18 @@ Follow the steps below to set up the project locally:
    ```bash
    git clone https://github.com/your-username/provider-schedule-event-manager.git
    cd provider-schedule-event-manager
+2. **Install Frontend Dependencies**:
+    ```bash
+    npm install
+
+3. **Set Up Environment Variables**:
+
+ Add your environment variables for both the frontend and backend.
+ Frontend: Create a **.env.local** file in the root of the project:
+   
+   ```bash
+   npm install
+
+4. **Access the Application**:
+
+    Open your browser and visit http://localhost:3000 to access the app.
